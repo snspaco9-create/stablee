@@ -45,6 +45,11 @@ export default function Payments() {
     }
   }
 
+  const downloadReceipt = (paymentId) => {
+    const token = localStorage.getItem('token')
+    window.open(`http://localhost:5000/api/receipts/${paymentId}?token=${token}`, '_blank')
+  }
+
   const fmt = (n) => `₦${Number(n).toLocaleString()}`
 
   return (
@@ -142,6 +147,12 @@ export default function Payments() {
                   <div className="text-right">
                     <p className="text-lg font-bold text-green-600">{fmt(p.amount)}</p>
                     <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-lg">{p.status}</span>
+                    <button
+                      onClick={() => downloadReceipt(p.id)}
+                      className="block mt-2 text-xs text-blue-600 hover:underline ml-auto"
+                    >
+                      Download receipt
+                    </button>
                   </div>
                 </div>
               </div>
