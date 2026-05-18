@@ -13,6 +13,9 @@ app.get('/', (req, res) => {
 const authRoutes = require('./routes/auth')
 app.use('/api/auth', authRoutes)
 
+const propertyRoutes = require('./routes/properties')
+app.use('/api/properties', propertyRoutes)
+
 const unitRoutes = require('./routes/units')
 app.use('/api/units', unitRoutes)
 
@@ -22,8 +25,8 @@ app.use('/api/tenants', tenantRoutes)
 const paymentRoutes = require('./routes/payments')
 app.use('/api/payments', paymentRoutes)
 
-const propertyRoutes = require('./routes/properties')
-app.use('/api/properties', propertyRoutes)
+const reminderRoutes = require('./routes/reminders')
+app.use('/api/reminders', reminderRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
