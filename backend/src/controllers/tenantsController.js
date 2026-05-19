@@ -19,15 +19,17 @@ function calculateNextDueDate(leaseStart, paymentCycle) {
 }
 
 exports.getTenants = async (req, res) => {
+  const landlord_id = req.landlord.id
+
   const { data, error } = await supabase
     .from('tenants')
-    .select('*, units(unit_number, rent_amount, payment_cycle, properties(name))')
+    .select('*, units!inner(unit_number, rent_amount, payment_cycle, properties!inner(name, landlord_id))')
+    .eq('units.properties.landlord_id', landlord_id)
     .order('full_name', { ascending: true })
 
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
 }
-
 exports.createTenant = async (req, res) => {
   const { unit_id, full_name, phone, email, lease_start, lease_end } = req.body
 

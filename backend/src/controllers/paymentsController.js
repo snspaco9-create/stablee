@@ -19,11 +19,13 @@ function advanceDueDate(currentDueDate, paymentCycle) {
 }
 
 exports.getPayments = async (req, res) => {
+  const landlord_id = req.landlord.id
   const { tenant_id } = req.query
 
   let query = supabase
     .from('payments')
-    .select('*, tenants(full_name, phone, units(unit_number, payment_cycle, properties(name)))')
+    .select('*, tenants!inner(full_name, phone, units!inner(unit_number, payment_cycle, properties!inner(name, landlord_id))))')
+    .eq('tenants.units.properties.landlord_id', landlord_id)
     .order('payment_date', { ascending: false })
 
   if (tenant_id) query = query.eq('tenant_id', tenant_id)
