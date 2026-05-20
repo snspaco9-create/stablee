@@ -53,6 +53,11 @@ export default function Login() {
               onChange={e => setForm({ ...form, password: e.target.value })}
               required
             />
+            <div className="flex justify-end mt-1">
+              <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
           </div>
           <button
             type="submit"
@@ -69,14 +74,5 @@ export default function Login() {
         </p>
       </div>
     </div>
-
-
   )
-  
 }
-<div className="flex justify-between items-center mt-1">
-  <span></span>
-  <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
-    Forgot password?
-  </Link>
-</div>
