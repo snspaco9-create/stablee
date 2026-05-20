@@ -1,4 +1,4 @@
-const supabase = require('../supabase')
+const { supabaseAdmin: supabase } = require('../supabase')
 
 function calculateNextDueDate(leaseStart, paymentCycle) {
   const date = new Date(leaseStart)

@@ -1,4 +1,4 @@
-const supabase = require('../supabase')
+const { supabaseAdmin: supabase } = require('../supabase')
 
 exports.getProperties = async (req, res) => {
   const { data, error } = await supabase

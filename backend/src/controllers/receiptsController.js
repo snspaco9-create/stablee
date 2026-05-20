@@ -1,4 +1,4 @@
-const supabase = require('../supabase')
+const { supabaseAdmin: supabase } = require('../supabase')
 const { generateReceipt } = require('../services/pdf')
 
 exports.downloadReceipt = async (req, res) => {

@@ -1,4 +1,4 @@
-const supabase = require('../supabase')
+const { supabaseAdmin: supabase } = require('../supabase')
 
 function advanceDueDate(currentDueDate, paymentCycle) {
   const date = new Date(currentDueDate)
