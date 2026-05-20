@@ -74,3 +74,31 @@ exports.login = async (req, res) => {
     }
   })
 }
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ error: 'Email is required' })
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://stablee.vercel.app/reset-password'
+  })
+
+  if (error) return res.status(400).json({ error: error.message })
+  res.json({ message: 'Password reset email sent' })
+}
+
+exports.resetPassword = async (req, res) => {
+  const { password } = req.body
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1]
+
+  if (!token) return res.status(401).json({ error: 'No token provided' })
+  if (!password) return res.status(400).json({ error: 'Password is required' })
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(
+    (await supabaseAdmin.auth.getUser(token)).data.user.id,
+    { password }
+  )
+
+  if (error) return res.status(400).json({ error: error.message })
+  res.json({ message: 'Password updated successfully' })
+}

@@ -7,6 +7,8 @@ import Properties from './pages/Properties'
 import Units from './pages/Units'
 import Tenants from './pages/Tenants'
 import Payments from './pages/Payments'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function PrivateRoute({ children }) {
   const { landlord, loading } = useAuth()
@@ -19,6 +21,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
       <Route path="/properties/:property_id/units" element={<PrivateRoute><Units /></PrivateRoute>} />
