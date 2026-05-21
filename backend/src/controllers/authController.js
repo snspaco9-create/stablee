@@ -74,6 +74,7 @@ exports.login = async (req, res) => {
     }
   })
 }
+
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body
   if (!email) return res.status(400).json({ error: 'Email is required' })
@@ -83,7 +84,7 @@ exports.forgotPassword = async (req, res) => {
   })
 
   if (error) return res.status(400).json({ error: error.message })
-  res.json({ message: 'Password reset email sent' })
+  res.json({ message: 'Password reset email sent successfully' })
 }
 
 exports.resetPassword = async (req, res) => {
@@ -94,8 +95,11 @@ exports.resetPassword = async (req, res) => {
   if (!token) return res.status(401).json({ error: 'No token provided' })
   if (!password) return res.status(400).json({ error: 'Password is required' })
 
+  const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+  if (userError || !user) return res.status(401).json({ error: 'Invalid token' })
+
   const { error } = await supabaseAdmin.auth.admin.updateUserById(
-    (await supabaseAdmin.auth.getUser(token)).data.user.id,
+    user.id,
     { password }
   )
 
