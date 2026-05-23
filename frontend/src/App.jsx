@@ -10,6 +10,7 @@ import Payments from './pages/Payments'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Pricing from './pages/Pricing'
+import Checkout from './pages/Checkout'
 
 function PrivateRoute({ children }) {
   const { landlord, loading } = useAuth()
@@ -30,6 +31,7 @@ export default function App() {
       <Route path="/tenants" element={<PrivateRoute><Tenants /></PrivateRoute>} />
       <Route path="/payments" element={<PrivateRoute><Payments /></PrivateRoute>} />
       <Route path="/pricing" element={<PrivateRoute><Pricing /></PrivateRoute>} />
+      <Route path="/checkout/:plan" element={<PrivateRoute><Checkout /></PrivateRoute>} />
     </Routes>
   )
 }

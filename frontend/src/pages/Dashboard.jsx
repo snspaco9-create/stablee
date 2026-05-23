@@ -10,6 +10,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.get('/payments/summary').then(res => setSummary(res.data))
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') === 'success') {
+      const plan = params.get('plan')
+      const updated = { ...landlord, plan }
+      localStorage.setItem('landlord', JSON.stringify(updated))
+      window.history.replaceState({}, '', '/')
+      alert(`Payment successful! You are now on the ${plan} plan.`)
+    }
   }, [])
 
   const fmt = (n) => `₦${Number(n).toLocaleString()}`
