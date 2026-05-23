@@ -64,10 +64,19 @@ export default function Dashboard() {
             <p className="text-lg font-semibold text-gray-900">Record</p>
             <p className="text-xs text-gray-400 mt-1">Mark a rent as paid</p>
           </button>
-          <button onClick={() => navigate('/pricing')} className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 text-left transition-colors">
+          <button onClick={() => navigate('/tenants')} className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 text-left transition-colors">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Reminders</p>
+            <p className="text-lg font-semibold text-gray-900">Send</p>
+            <p className="text-xs text-gray-400 mt-1">SMS reminders</p>
+          </button>
+          <button onClick={() => navigate('/pricing')} className="col-span-2 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 text-left transition-colors">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Plans</p>
-            <p className="text-lg font-semibold text-gray-900">Upgrade</p>
-            <p className="text-xs text-gray-400 mt-1">View pricing plans</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {landlord?.plan === 'free' ? 'Upgrade' : `${landlord?.plan?.charAt(0).toUpperCase()}${landlord?.plan?.slice(1)} Plan`}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {landlord?.plan === 'free' ? 'You are on the free plan' : 'Manage your subscription'}
+            </p>
           </button>
         </div>
 

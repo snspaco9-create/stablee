@@ -13,16 +13,18 @@ export default function Pricing() {
       color: 'border-gray-200',
       badge: null,
       features: [
-        '1 property',
-        '5 units',
-        '10 tenants',
-        'Manual payment recording',
-        'Dashboard summary',
-        'No SMS reminders',
-        'No PDF receipts'
+        { text: '1 property', included: true },
+        { text: '5 units', included: true },
+        { text: '10 tenants', included: true },
+        { text: 'Manual payment recording', included: true },
+        { text: 'Dashboard summary', included: true },
+        { text: 'SMS reminders', included: false },
+        { text: 'PDF receipts', included: false },
+        { text: 'Tenant portal', included: false }
       ],
       cta: 'Current plan',
-      disabled: true
+      disabled: true,
+      plan: 'free'
     },
     {
       name: 'Starter',
@@ -31,13 +33,13 @@ export default function Pricing() {
       color: 'border-blue-500',
       badge: 'Popular',
       features: [
-        '5 properties',
-        '30 units',
-        'Unlimited tenants',
-        'SMS reminders (100/month)',
-        'PDF receipts',
-        'Tenant portal',
-        'Email support'
+        { text: '5 properties', included: true },
+        { text: '30 units', included: true },
+        { text: 'Unlimited tenants', included: true },
+        { text: 'SMS reminders (100/month)', included: true },
+        { text: 'PDF receipts', included: true },
+        { text: 'Tenant portal', included: true },
+        { text: 'Email support', included: true }
       ],
       cta: 'Upgrade to Starter',
       disabled: false,
@@ -50,14 +52,14 @@ export default function Pricing() {
       color: 'border-purple-500',
       badge: null,
       features: [
-        'Unlimited properties',
-        'Unlimited units',
-        'Unlimited tenants',
-        'Unlimited SMS reminders',
-        'PDF receipts',
-        'Tenant portal',
-        'Bulk reminders',
-        'Priority support'
+        { text: 'Unlimited properties', included: true },
+        { text: 'Unlimited units', included: true },
+        { text: 'Unlimited tenants', included: true },
+        { text: 'Unlimited SMS reminders', included: true },
+        { text: 'PDF receipts', included: true },
+        { text: 'Tenant portal', included: true },
+        { text: 'Bulk reminders', included: true },
+        { text: 'Priority support', included: true }
       ],
       cta: 'Upgrade to Pro',
       disabled: false,
@@ -90,20 +92,22 @@ export default function Pricing() {
                   {plan.badge}
                 </span>
               )}
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-lg">{plan.name}</h3>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {plan.price}
-                    <span className="text-sm font-normal text-gray-400"> /{plan.period}</span>
-                  </p>
-                </div>
+              <div className="mb-4">
+                <h3 className="font-bold text-gray-900 text-lg">{plan.name}</h3>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {plan.price}
+                  <span className="text-sm font-normal text-gray-400"> /{plan.period}</span>
+                </p>
               </div>
               <ul className="space-y-2 mb-6">
                 {plan.features.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="text-green-500">✓</span>
-                    {f}
+                  <li key={f.text} className="flex items-center gap-2 text-sm">
+                    <span className={f.included ? 'text-green-500' : 'text-red-400'}>
+                      {f.included ? '✓' : '✗'}
+                    </span>
+                    <span className={f.included ? 'text-gray-600' : 'text-gray-400'}>
+                      {f.text}
+                    </span>
                   </li>
                 ))}
               </ul>
