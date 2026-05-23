@@ -6,26 +6,48 @@ export default function Units() {
   const { property_id } = useParams()
   const [units, setUnits] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editUnit, setEditUnit] = useState(null)
   const [form, setForm] = useState({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => { fetchUnits() }, [property_id])
 
   const fetchUnits = () => {
     api.get(`/units/${property_id}`).then(res => setUnits(res.data))
   }
 
-  useEffect(() => { fetchUnits() }, [property_id])
+  const handleEdit = (unit) => {
+    setEditUnit(unit)
+    setForm({ unit_number: unit.unit_number, rent_amount: unit.rent_amount, payment_cycle: unit.payment_cycle })
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete ${name}?`)) return
+    try {
+      await api.delete(`/units/${id}`)
+      fetchUnits()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete unit')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/units', { ...form, property_id, rent_amount: Number(form.rent_amount) })
+      if (editUnit) {
+        await api.put(`/units/${editUnit.id}`, { ...form, rent_amount: Number(form.rent_amount) })
+      } else {
+        await api.post('/units', { ...form, property_id, rent_amount: Number(form.rent_amount) })
+      }
       setForm({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' })
+      setEditUnit(null)
       setShowForm(false)
       fetchUnits()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to create unit')
+      alert(err.response?.data?.error || 'Failed to save unit')
     } finally {
       setLoading(false)
     }
@@ -37,7 +59,7 @@ export default function Units() {
         <button onClick={() => navigate('/properties')} className="text-sm text-blue-600 hover:underline">← Properties</button>
         <span className="text-lg font-bold text-blue-600">Units</span>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { setEditUnit(null); setForm({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' }); setShowForm(!showForm) }}
           className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
         >
           + Add
@@ -47,7 +69,9 @@ export default function Units() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">New unit</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              {editUnit ? 'Edit unit' : 'New unit'}
+            </h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Unit number</label>
@@ -80,13 +104,22 @@ export default function Units() {
                   <option value="yearly">Yearly</option>
                 </select>
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save unit'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : editUnit ? 'Update unit' : 'Save unit'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setEditUnit(null) }}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -112,6 +145,20 @@ export default function Units() {
                     <p className="text-xs text-gray-400">Due: {u.tenants[0].next_due_date}</p>
                   </div>
                 )}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                  <button
+                    onClick={() => handleEdit(u)}
+                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(u.id, u.unit_number)}
+                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>

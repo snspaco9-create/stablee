@@ -5,26 +5,48 @@ import api from '../api'
 export default function Properties() {
   const [properties, setProperties] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editProperty, setEditProperty] = useState(null)
   const [form, setForm] = useState({ name: '', address: '', city: '' })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => { fetchProperties() }, [])
 
   const fetchProperties = () => {
     api.get('/properties').then(res => setProperties(res.data))
   }
 
-  useEffect(() => { fetchProperties() }, [])
+  const handleEdit = (property) => {
+    setEditProperty(property)
+    setForm({ name: property.name, address: property.address || '', city: property.city || '' })
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete ${name}? All units and tenants will be removed.`)) return
+    try {
+      await api.delete(`/properties/${id}`)
+      fetchProperties()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete property')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/properties', form)
+      if (editProperty) {
+        await api.put(`/properties/${editProperty.id}`, form)
+      } else {
+        await api.post('/properties', form)
+      }
       setForm({ name: '', address: '', city: '' })
+      setEditProperty(null)
       setShowForm(false)
       fetchProperties()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to create property')
+      alert(err.response?.data?.error || 'Failed to save property')
     } finally {
       setLoading(false)
     }
@@ -36,7 +58,7 @@ export default function Properties() {
         <button onClick={() => navigate('/')} className="text-sm text-blue-600 hover:underline">← Dashboard</button>
         <span className="text-lg font-bold text-blue-600">Properties</span>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { setEditProperty(null); setForm({ name: '', address: '', city: '' }); setShowForm(!showForm) }}
           className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
         >
           + Add
@@ -46,7 +68,9 @@ export default function Properties() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">New property</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              {editProperty ? 'Edit property' : 'New property'}
+            </h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Property name</label>
@@ -73,13 +97,22 @@ export default function Properties() {
                   onChange={e => setForm({ ...form, city: e.target.value })}
                 />
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save property'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : editProperty ? 'Update property' : 'Save property'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setEditProperty(null) }}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -91,19 +124,40 @@ export default function Properties() {
         ) : (
           <div className="space-y-4">
             {properties.map(p => (
-              <div
-                key={p.id}
-                onClick={() => navigate(`/properties/${p.id}/units`)}
-                className="bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer hover:border-blue-200 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{p.name}</h3>
-                    <p className="text-xs text-gray-400 mt-1">{p.address}{p.city ? `, ${p.city}` : ''}</p>
+              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+                <div
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/properties/${p.id}/units`)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{p.name}</h3>
+                      <p className="text-xs text-gray-400 mt-1">{p.address}{p.city ? `, ${p.city}` : ''}</p>
+                    </div>
+                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                      {p.units?.[0]?.count || 0} units
+                    </span>
                   </div>
-                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                    {p.units?.[0]?.count || 0} units
-                  </span>
+                </div>
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                  <button
+                    onClick={() => navigate(`/properties/${p.id}/units`)}
+                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
+                  >
+                    View units
+                  </button>
+                  <button
+                    onClick={() => handleEdit(p)}
+                    className="flex-1 text-xs bg-gray-50 text-gray-600 py-1.5 rounded-lg hover:bg-gray-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.id, p.name)}
+                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}

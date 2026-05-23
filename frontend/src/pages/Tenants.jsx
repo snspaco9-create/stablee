@@ -7,6 +7,7 @@ export default function Tenants() {
   const [units, setUnits] = useState([])
   const [properties, setProperties] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [editTenant, setEditTenant] = useState(null)
   const [selectedProperty, setSelectedProperty] = useState('')
   const [form, setForm] = useState({
     unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: ''
@@ -15,9 +16,13 @@ export default function Tenants() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/tenants').then(res => setTenants(res.data))
+    fetchTenants()
     api.get('/properties').then(res => setProperties(res.data))
   }, [])
+
+  const fetchTenants = () => {
+    api.get('/tenants').then(res => setTenants(res.data))
+  }
 
   const handlePropertyChange = async (property_id) => {
     setSelectedProperty(property_id)
@@ -30,17 +35,58 @@ export default function Tenants() {
     }
   }
 
+  const handleEdit = (tenant) => {
+    setEditTenant(tenant)
+    setForm({
+      unit_id: tenant.unit_id,
+      full_name: tenant.full_name,
+      phone: tenant.phone,
+      email: tenant.email || '',
+      lease_start: tenant.lease_start || '',
+      lease_end: tenant.lease_end || ''
+    })
+    setShowForm(true)
+  }
+
+  const handleDelete = async (tenant_id, name) => {
+    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return
+    try {
+      await api.delete(`/tenants/${tenant_id}`)
+      fetchTenants()
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete tenant')
+    }
+  }
+
+  const sendReminder = async (tenant_id, name) => {
+    try {
+      await api.post('/reminders/send', { tenant_id })
+      alert(`Reminder sent to ${name}`)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to send reminder')
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.post('/tenants', form)
+      if (editTenant) {
+        await api.put(`/tenants/${editTenant.id}`, {
+          full_name: form.full_name,
+          phone: form.phone,
+          email: form.email,
+          lease_end: form.lease_end
+        })
+      } else {
+        await api.post('/tenants', form)
+      }
       setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' })
+      setEditTenant(null)
       setShowForm(false)
-      const res = await api.get('/tenants')
-      setTenants(res.data)
+      fetchTenants()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to add tenant')
+      alert(err.response?.data?.error || 'Failed to save tenant')
     } finally {
       setLoading(false)
     }
@@ -52,7 +98,7 @@ export default function Tenants() {
         <button onClick={() => navigate('/')} className="text-sm text-blue-600 hover:underline">← Dashboard</button>
         <span className="text-lg font-bold text-blue-600">Tenants</span>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' }); setShowForm(!showForm) }}
           className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
         >
           + Add
@@ -62,36 +108,42 @@ export default function Tenants() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">New tenant</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              {editTenant ? 'Edit tenant' : 'New tenant'}
+            </h3>
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Property</label>
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedProperty}
-                  onChange={e => handlePropertyChange(e.target.value)}
-                  required
-                >
-                  <option value="">Select property</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Unit</label>
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.unit_id}
-                  onChange={e => setForm({ ...form, unit_id: e.target.value })}
-                  required
-                >
-                  <option value="">Select vacant unit</option>
-                  {units.map(u => (
-                    <option key={u.id} value={u.id}>{u.unit_number} — ₦{Number(u.rent_amount).toLocaleString()}</option>
-                  ))}
-                </select>
-              </div>
+              {!editTenant && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Property</label>
+                    <select
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedProperty}
+                      onChange={e => handlePropertyChange(e.target.value)}
+                      required
+                    >
+                      <option value="">Select property</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Unit</label>
+                    <select
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={form.unit_id}
+                      onChange={e => setForm({ ...form, unit_id: e.target.value })}
+                      required
+                    >
+                      <option value="">Select vacant unit</option>
+                      {units.map(u => (
+                        <option key={u.id} value={u.id}>{u.unit_number} — ₦{Number(u.rent_amount).toLocaleString()}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Full name</label>
                 <input
@@ -120,7 +172,7 @@ export default function Tenants() {
                   onChange={e => setForm({ ...form, email: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              {!editTenant && (
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Lease start</label>
                   <input
@@ -131,23 +183,32 @@ export default function Tenants() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Lease end</label>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={form.lease_end}
-                    onChange={e => setForm({ ...form, lease_end: e.target.value })}
-                  />
-                </div>
+              )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Lease end</label>
+                <input
+                  type="date"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={form.lease_end}
+                  onChange={e => setForm({ ...form, lease_end: e.target.value })}
+                />
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save tenant'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : editTenant ? 'Update tenant' : 'Save tenant'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setEditTenant(null) }}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -170,12 +231,30 @@ export default function Tenants() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-400">Next due</p>
-                    <p className={`text-sm font-semibold mt-0.5 ${
-                      new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'
-                    }`}>
+                    <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'}`}>
                       {t.next_due_date}
                     </p>
                   </div>
+                </div>
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                  <button
+                    onClick={() => sendReminder(t.id, t.full_name)}
+                    className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100"
+                  >
+                    Send reminder
+                  </button>
+                  <button
+                    onClick={() => handleEdit(t)}
+                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t.id, t.full_name)}
+                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
