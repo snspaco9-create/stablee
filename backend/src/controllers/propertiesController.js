@@ -13,12 +13,41 @@ exports.getProperties = async (req, res) => {
 
 exports.createProperty = async (req, res) => {
   const { name, address, city } = req.body
+  const landlord = req.landlord
 
   if (!name) return res.status(400).json({ error: 'Property name is required' })
 
+  if (landlord.plan === 'free') {
+    const { data: existing } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('landlord_id', landlord.id)
+
+    if (existing && existing.length >= 1) {
+      return res.status(403).json({
+        error: 'Free plan allows only 1 property. Upgrade to add more.',
+        upgrade: true
+      })
+    }
+  }
+
+  if (landlord.plan === 'starter') {
+    const { data: existing } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('landlord_id', landlord.id)
+
+    if (existing && existing.length >= 5) {
+      return res.status(403).json({
+        error: 'Starter plan allows only 5 properties. Upgrade to Pro for unlimited.',
+        upgrade: true
+      })
+    }
+  }
+
   const { data, error } = await supabase
     .from('properties')
-    .insert([{ name, address, city, landlord_id: req.landlord.id }])
+    .insert([{ name, address, city, landlord_id: landlord.id }])
     .select()
     .single()
 

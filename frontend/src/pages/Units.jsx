@@ -47,7 +47,14 @@ export default function Units() {
       setShowForm(false)
       fetchUnits()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save unit')
+      const data = err.response?.data
+      if (data?.upgrade) {
+        if (window.confirm(`${data.error}\n\nUpgrade now?`)) {
+          navigate('/pricing')
+        }
+      } else {
+        alert(data?.error || 'Failed to save unit')
+      }
     } finally {
       setLoading(false)
     }

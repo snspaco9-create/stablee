@@ -46,7 +46,14 @@ export default function Properties() {
       setShowForm(false)
       fetchProperties()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save property')
+      const data = err.response?.data
+      if (data?.upgrade) {
+        if (window.confirm(`${data.error}\n\nUpgrade now?`)) {
+          navigate('/pricing')
+        }
+      } else {
+        alert(data?.error || 'Failed to save property')
+      }
     } finally {
       setLoading(false)
     }
@@ -125,10 +132,7 @@ export default function Properties() {
           <div className="space-y-4">
             {properties.map(p => (
               <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/properties/${p.id}/units`)}
-                >
+                <div className="cursor-pointer" onClick={() => navigate(`/properties/${p.id}/units`)}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-gray-900">{p.name}</h3>
