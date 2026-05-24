@@ -1,4 +1,4 @@
-const supabase = require('../supabase')
+const { supabaseAdmin: supabase } = require('../supabase')
 const { sendSMS } = require('../services/sms')
 
 function buildReminderMessage(tenantName, amount, dueDate, propertyName, unitNumber) {
