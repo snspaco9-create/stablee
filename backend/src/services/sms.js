@@ -16,7 +16,7 @@ async function sendSMS(phone, message) {
     return { success: true, data: response.data }
   } catch (err) {
     console.error('SMS error:', err.response?.data || err.message)
-    return { success: false, error: err.response?.data || err.message }
+    return { success: false, error: err.response?.data?.message || err.message }
   }
 }
 
