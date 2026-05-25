@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import api from '../api'
 
 export default function Units() {
@@ -24,12 +25,13 @@ export default function Units() {
   }
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete ${name}?`)) return
+    const toastId = toast.loading(`Deleting ${name}...`)
     try {
       await api.delete(`/units/${id}`)
+      toast.success(`${name} deleted`, { id: toastId })
       fetchUnits()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete unit')
+      toast.error(err.response?.data?.error || 'Failed to delete unit', { id: toastId })
     }
   }
 
@@ -39,8 +41,10 @@ export default function Units() {
     try {
       if (editUnit) {
         await api.put(`/units/${editUnit.id}`, { ...form, rent_amount: Number(form.rent_amount) })
+        toast.success('Unit updated')
       } else {
         await api.post('/units', { ...form, property_id, rent_amount: Number(form.rent_amount) })
+        toast.success('Unit added')
       }
       setForm({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' })
       setEditUnit(null)
@@ -49,11 +53,10 @@ export default function Units() {
     } catch (err) {
       const data = err.response?.data
       if (data?.upgrade) {
-        if (window.confirm(`${data.error}\n\nUpgrade now?`)) {
-          navigate('/pricing')
-        }
+        toast.error(data.error)
+        setTimeout(() => navigate('/pricing'), 1500)
       } else {
-        alert(data?.error || 'Failed to save unit')
+        toast.error(data?.error || 'Failed to save unit')
       }
     } finally {
       setLoading(false)
@@ -132,7 +135,11 @@ export default function Units() {
         )}
 
         {units.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">No units yet. Tap + Add.</div>
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">🏢</p>
+            <p className="text-gray-500 text-sm font-medium">No units yet</p>
+            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {units.map(u => (

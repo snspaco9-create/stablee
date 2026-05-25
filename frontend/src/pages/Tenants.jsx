@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import api from '../api'
 
 export default function Tenants() {
@@ -49,21 +50,30 @@ export default function Tenants() {
   }
 
   const handleDelete = async (tenant_id, name) => {
-    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return
+    const toastId = toast.loading(`Deleting ${name}...`)
     try {
       await api.delete(`/tenants/${tenant_id}`)
+      toast.success(`${name} removed`, { id: toastId })
       fetchTenants()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete tenant')
+      toast.error(err.response?.data?.error || 'Failed to delete tenant', { id: toastId })
     }
   }
 
   const sendReminder = async (tenant_id, name) => {
+    const toastId = toast.loading(`Sending reminder to ${name}...`)
     try {
-      await api.post('/reminders/send', { tenant_id })
-      alert(`Reminder sent to ${name}`)
+      const res = await api.post('/reminders/send', { tenant_id })
+      if (res.data.pending) {
+        toast('Reminder logged. SMS pending sender ID approval.', {
+          id: toastId,
+          icon: '⏳'
+        })
+      } else {
+        toast.success(`Reminder sent to ${name}`, { id: toastId })
+      }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to send reminder')
+      toast.error(err.response?.data?.error || 'Failed to send reminder', { id: toastId })
     }
   }
 
@@ -78,15 +88,17 @@ export default function Tenants() {
           email: form.email,
           lease_end: form.lease_end
         })
+        toast.success('Tenant updated')
       } else {
         await api.post('/tenants', form)
+        toast.success('Tenant added')
       }
       setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' })
       setEditTenant(null)
       setShowForm(false)
       fetchTenants()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save tenant')
+      toast.error(err.response?.data?.error || 'Failed to save tenant')
     } finally {
       setLoading(false)
     }
@@ -214,8 +226,10 @@ export default function Tenants() {
         )}
 
         {tenants.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            No tenants yet. Tap + Add to get started.
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">👥</p>
+            <p className="text-gray-500 text-sm font-medium">No tenants yet</p>
+            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -241,7 +255,7 @@ export default function Tenants() {
                     onClick={() => sendReminder(t.id, t.full_name)}
                     className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100"
                   >
-                    Send reminder
+                    Remind
                   </button>
                   <button
                     onClick={() => handleEdit(t)}

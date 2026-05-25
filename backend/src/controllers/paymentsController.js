@@ -141,3 +141,20 @@ exports.getDashboardSummary = async (req, res) => {
     upcoming_due: upcoming || []
   })
 }
+exports.deletePayment = async (req, res) => {
+  const { data: payment, error: fetchError } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('id', req.params.id)
+    .single()
+
+  if (fetchError || !payment) return res.status(404).json({ error: 'Payment not found' })
+
+  const { error } = await supabase
+    .from('payments')
+    .delete()
+    .eq('id', req.params.id)
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ message: 'Payment deleted' })
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import api from '../api'
 
 export default function Properties() {
@@ -8,6 +9,7 @@ export default function Properties() {
   const [editProperty, setEditProperty] = useState(null)
   const [form, setForm] = useState({ name: '', address: '', city: '' })
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => { fetchProperties() }, [])
@@ -23,12 +25,15 @@ export default function Properties() {
   }
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete ${name}? All units and tenants will be removed.`)) return
+    setDeleting(id)
     try {
       await api.delete(`/properties/${id}`)
+      toast.success(`${name} deleted`)
       fetchProperties()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete property')
+      toast.error(err.response?.data?.error || 'Failed to delete property')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -38,8 +43,10 @@ export default function Properties() {
     try {
       if (editProperty) {
         await api.put(`/properties/${editProperty.id}`, form)
+        toast.success('Property updated')
       } else {
         await api.post('/properties', form)
+        toast.success('Property added')
       }
       setForm({ name: '', address: '', city: '' })
       setEditProperty(null)
@@ -48,11 +55,10 @@ export default function Properties() {
     } catch (err) {
       const data = err.response?.data
       if (data?.upgrade) {
-        if (window.confirm(`${data.error}\n\nUpgrade now?`)) {
-          navigate('/pricing')
-        }
+        toast.error(data.error)
+        setTimeout(() => navigate('/pricing'), 1500)
       } else {
-        alert(data?.error || 'Failed to save property')
+        toast.error(data?.error || 'Failed to save property')
       }
     } finally {
       setLoading(false)
@@ -125,8 +131,10 @@ export default function Properties() {
         )}
 
         {properties.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            No properties yet. Tap + Add to get started.
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">🏠</p>
+            <p className="text-gray-500 text-sm font-medium">No properties yet</p>
+            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -158,9 +166,10 @@ export default function Properties() {
                   </button>
                   <button
                     onClick={() => handleDelete(p.id, p.name)}
-                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
+                    disabled={deleting === p.id}
+                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100 disabled:opacity-50"
                   >
-                    Delete
+                    {deleting === p.id ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>
