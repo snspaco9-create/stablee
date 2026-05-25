@@ -57,6 +57,9 @@ app.use('/api/receipts', receiptRoutes)
 const subscriptionRoutes = require('./routes/subscriptions')
 app.use('/api/subscriptions', subscriptionRoutes)
 
+const landlordRoutes = require('./routes/landlords')
+app.use('/api/landlords', landlordRoutes)
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Stablee backend running on port ${PORT}`)
