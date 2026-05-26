@@ -60,6 +60,9 @@ app.use('/api/subscriptions', subscriptionRoutes)
 const landlordRoutes = require('./routes/landlords')
 app.use('/api/landlords', landlordRoutes)
 
+const { startScheduler } = require('./services/scheduler')
+startScheduler()
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Stablee backend running on port ${PORT}`)

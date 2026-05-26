@@ -1,54 +1,49 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import api from '../api'
 
 export default function Dashboard() {
-  const { landlord, logout } = useAuth();
-  const [summary, setSummary] = useState(null);
-  const navigate = useNavigate();
+  const { landlord, logout } = useAuth()
+  const [summary, setSummary] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/payments/summary').then(res => setSummary(res.data));
+    api.get('/payments/summary').then(res => setSummary(res.data))
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search)
     if (params.get('payment') === 'success') {
-      const plan = params.get('plan');
-      const updated = { ...landlord, plan };
-      localStorage.setItem('landlord', JSON.stringify(updated));
-      window.history.replaceState({}, '', '/');
-      alert(`Payment successful! You are now on the ${plan} plan.`);
+      const plan = params.get('plan')
+      const updated = { ...landlord, plan }
+      localStorage.setItem('landlord', JSON.stringify(updated))
+      window.history.replaceState({}, '', '/')
     }
-  }, []);
+  }, [])
 
   const fmt = (n) => {
-    const num = Number(n);
-    if (num >= 1000000) return `₦${(num / 1000000).toFixed(1)}m`;
-    if (num >= 1000) return `₦${(num / 1000).toFixed(0)}k`;
-    return `₦${num.toLocaleString()}`;
-  };
+    const num = Number(n)
+    if (num >= 1000000) return `₦${(num / 1000000).toFixed(1)}m`
+    if (num >= 1000) return `₦${(num / 1000).toFixed(0)}k`
+    return `₦${num.toLocaleString()}`
+  }
 
-  const initials = landlord?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase();
+  const initials = landlord?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase()
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-100 px-4 py-4 flex justify-between items-center sticky top-0 z-10">
         <span className="text-lg font-bold text-blue-600 tracking-tight">Stablee</span>
-        {/* --- rearranged header section --- */}
-        <div className="flex items-center gap-2">
-          <div
+        <div className="flex items-center gap-3">
+          <button
             onClick={() => navigate('/settings')}
-            className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold flex items-center justify-center cursor-pointer hover:bg-blue-200"
+            className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
           >
-            {initials}
-          </div>
-          <span className="text-sm text-gray-600 hidden sm:block">{landlord?.full_name}</span>
-          <button onClick={() => navigate('/settings')} className="text-xs text-gray-400 hover:text-gray-600 hidden sm:block">
-            Settings
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold flex items-center justify-center">
+              {initials}
+            </div>
+            <span className="text-sm text-gray-600 hidden sm:block">{landlord?.full_name}</span>
           </button>
-          <button onClick={logout} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-            Logout
-          </button>
+          <button onClick={logout} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Logout</button>
         </div>
       </div>
 
@@ -138,5 +133,5 @@ export default function Dashboard() {
         )}
       </div>
     </div>
-  );
+  )
 }
