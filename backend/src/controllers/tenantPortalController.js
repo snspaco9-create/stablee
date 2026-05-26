@@ -22,7 +22,7 @@ exports.generatePortalLink = async (req, res) => {
 
   const portalUrl = `https://stablee.vercel.app/tenant/${token}`
 
-  const message = `Hello ${tenant.full_name}, you can view your rent history and receipts here: ${portalUrl} - StableeApp`
+  const message = `Hello ${tenant.full_name}, view your rent history and receipts here: ${portalUrl} - StableeApp`
 
   const result = await sendSMS(tenant.phone, message)
 
@@ -36,11 +36,15 @@ exports.generatePortalLink = async (req, res) => {
 exports.getPortalData = async (req, res) => {
   const { token } = req.params
 
+  console.log('Portal token lookup:', token)
+
   const { data: tenant, error } = await supabase
     .from('tenants')
     .select('*, units(unit_number, rent_amount, payment_cycle, properties(name, address, city))')
     .eq('portal_token', token)
     .single()
+
+  console.log('Tenant found:', tenant?.full_name, 'Error:', error?.message)
 
   if (error || !tenant) return res.status(404).json({ error: 'Invalid or expired portal link' })
 
