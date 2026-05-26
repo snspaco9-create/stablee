@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword'
 import Pricing from './pages/Pricing'
 import Checkout from './pages/Checkout'
 import Settings from './pages/Settings'
+import TenantPortal from './pages/TenantPortal'
 
 function PrivateRoute({ children }) {
   const { landlord, loading } = useAuth()
@@ -34,6 +35,10 @@ export default function App() {
       <Route path="/pricing" element={<PrivateRoute><Pricing /></PrivateRoute>} />
       <Route path="/checkout/:plan" element={<PrivateRoute><Checkout /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+     <Route path="/tenant/:token" element={<TenantPortal />} />
+      <Route path="/tenant/:token" element={<TenantPortal />} />
     </Routes>
   )
 }
+
+

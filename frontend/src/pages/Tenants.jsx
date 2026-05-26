@@ -77,6 +77,24 @@ export default function Tenants() {
     }
   }
 
+  const sendPortalLink = async (tenant_id, name) => {
+    const toastId = toast.loading(`Sending portal link to ${name}...`)
+    try {
+      const res = await api.post(`/tenant-portal/generate/${tenant_id}`)
+      if (res.data.sms_sent) {
+        toast.success(`Portal link sent to ${name}`, { id: toastId })
+      } else {
+        toast(`Portal link generated. SMS pending approval. Copy: ${res.data.portal_url}`, {
+          id: toastId,
+          icon: '🔗',
+          duration: 8000
+        })
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to generate portal link', { id: toastId })
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -256,6 +274,12 @@ export default function Tenants() {
                     className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100"
                   >
                     Remind
+                  </button>
+                  <button
+                    onClick={() => sendPortalLink(t.id, t.full_name)}
+                    className="flex-1 text-xs bg-purple-50 text-purple-600 py-1.5 rounded-lg hover:bg-purple-100"
+                  >
+                    Portal
                   </button>
                   <button
                     onClick={() => handleEdit(t)}
