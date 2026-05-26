@@ -85,10 +85,11 @@ export default function Dashboard() {
             <p className="text-base font-semibold text-gray-900">Record</p>
             <p className="text-xs text-gray-400 mt-1">Mark a rent as paid</p>
           </button>
-          <button onClick={() => navigate('/tenants')} className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left transition-colors">
+          {/* Updated Reminders button - now navigates to /reminders */}
+          <button onClick={() => navigate('/reminders')} className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left transition-colors">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Reminders</p>
-            <p className="text-base font-semibold text-gray-900">Send</p>
-            <p className="text-xs text-gray-400 mt-1">SMS reminders</p>
+            <p className="text-base font-semibold text-gray-900">History</p>
+            <p className="text-xs text-gray-400 mt-1">View sent reminders</p>
           </button>
           <button onClick={() => navigate('/pricing')} className="col-span-2 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left transition-colors">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Plans</p>
