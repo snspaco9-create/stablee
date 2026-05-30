@@ -30,11 +30,27 @@ exports.getTenants = async (req, res) => {
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
 }
+
 exports.createTenant = async (req, res) => {
   const { unit_id, full_name, phone, email, lease_start, lease_end } = req.body
+  const landlord = req.landlord
 
   if (!unit_id || !full_name || !phone || !lease_start) {
     return res.status(400).json({ error: 'unit_id, full_name, phone and lease_start are required' })
+  }
+
+  if (landlord.plan === 'free') {
+    const { data: existing } = await supabase
+      .from('tenants')
+      .select('id, units!inner(properties!inner(landlord_id))')
+      .eq('units.properties.landlord_id', landlord.id)
+
+    if (existing && existing.length >= 10) {
+      return res.status(403).json({
+        error: 'Free plan allows only 10 tenants. Upgrade to add more.',
+        upgrade: true
+      })
+    }
   }
 
   const { data: unit, error: unitError } = await supabase

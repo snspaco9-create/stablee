@@ -14,15 +14,15 @@ exports.generatePortalLink = async (req, res) => {
   if (error || !tenant) return res.status(404).json({ error: 'Tenant not found' })
 
   const token = crypto.randomBytes(32).toString('hex')
+  const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
   await supabase
     .from('tenants')
-    .update({ portal_token: token })
+    .update({ portal_token: token, portal_token_expires_at: expires_at })
     .eq('id', tenant_id)
 
   const portalUrl = `https://stablee.vercel.app/tenant/${token}`
-
-  const message = `Hello ${tenant.full_name}, view your rent history and receipts here: ${portalUrl} - StableeApp`
+  const message = `Hello ${tenant.full_name}, view your rent history and receipts here: ${portalUrl} (valid for 7 days) - StableeApp`
 
   const result = await sendSMS(tenant.phone, message)
 
@@ -36,17 +36,17 @@ exports.generatePortalLink = async (req, res) => {
 exports.getPortalData = async (req, res) => {
   const { token } = req.params
 
-  console.log('Portal token lookup:', token)
-
   const { data: tenant, error } = await supabase
     .from('tenants')
     .select('*, units(unit_number, rent_amount, payment_cycle, properties(name, address, city))')
     .eq('portal_token', token)
     .single()
 
-  console.log('Tenant found:', tenant?.full_name, 'Error:', error?.message)
-
   if (error || !tenant) return res.status(404).json({ error: 'Invalid or expired portal link' })
+
+  if (tenant.portal_token_expires_at && new Date(tenant.portal_token_expires_at) < new Date()) {
+    return res.status(401).json({ error: 'This portal link has expired. Ask your landlord for a new one.' })
+  }
 
   const { data: payments } = await supabase
     .from('payments')

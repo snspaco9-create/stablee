@@ -6,10 +6,13 @@ import api from '../api'
 export default function Dashboard() {
   const { landlord, logout } = useAuth()
   const [summary, setSummary] = useState(null)
+  const [stats, setStats] = useState({ properties: 0, tenants: 0 })
   const navigate = useNavigate()
 
   useEffect(() => {
     api.get('/payments/summary').then(res => setSummary(res.data))
+    api.get('/properties').then(res => setStats(prev => ({ ...prev, properties: res.data.length })))
+    api.get('/tenants').then(res => setStats(prev => ({ ...prev, tenants: res.data.length })))
 
     const params = new URLSearchParams(window.location.search)
     if (params.get('payment') === 'success') {
@@ -51,7 +54,7 @@ export default function Dashboard() {
         <p className="text-sm text-gray-400 mb-1">Good day,</p>
         <h2 className="text-xl font-bold text-gray-900 mb-6">{landlord?.full_name}</h2>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Expected</p>
             <p className="text-lg font-bold text-gray-900">{summary ? fmt(summary.expected) : '—'}</p>
@@ -66,6 +69,23 @@ export default function Dashboard() {
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Outstanding</p>
             <p className="text-lg font-bold text-red-500">{summary ? fmt(summary.outstanding) : '—'}</p>
             <p className="text-xs text-gray-400 mt-1">this month</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+            <span className="text-2xl">🏠</span>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{stats.properties}</p>
+              <p className="text-xs text-gray-400">Properties</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+            <span className="text-2xl">👥</span>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{stats.tenants}</p>
+              <p className="text-xs text-gray-400">Tenants</p>
+            </div>
           </div>
         </div>
 
@@ -85,7 +105,6 @@ export default function Dashboard() {
             <p className="text-base font-semibold text-gray-900">Record</p>
             <p className="text-xs text-gray-400 mt-1">Mark a rent as paid</p>
           </button>
-          {/* Updated Reminders button - now navigates to /reminders */}
           <button onClick={() => navigate('/reminders')} className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left transition-colors">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Reminders</p>
             <p className="text-base font-semibold text-gray-900">History</p>

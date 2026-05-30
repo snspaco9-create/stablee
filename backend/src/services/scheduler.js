@@ -5,27 +5,13 @@ const { sendSMS } = require('./sms')
 function buildReminderMessage(tenantName, amount, dueDate, propertyName, unitNumber, daysUntilDue) {
   const formattedAmount = `₦${Number(amount).toLocaleString()}`
 
-  if (daysUntilDue === 30) {
-    return `Hello ${tenantName}, this is a friendly reminder that your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due on ${dueDate}. - StableeApp`
-  }
-  if (daysUntilDue === 14) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 2 weeks on ${dueDate}. Please start preparing. - StableeApp`
-  }
-  if (daysUntilDue === 7) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 7 days on ${dueDate}. Please prepare payment. - StableeApp`
-  }
-  if (daysUntilDue === 3) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 3 days on ${dueDate}. Kindly make payment promptly. - StableeApp`
-  }
-  if (daysUntilDue === 1) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due TOMORROW (${dueDate}). Please ensure payment is ready. - StableeApp`
-  }
-  if (daysUntilDue === 0) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due TODAY (${dueDate}). Please make payment immediately. - StableeApp`
-  }
-  if (daysUntilDue < 0) {
-    return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} was due on ${dueDate} and is now OVERDUE. Please contact your landlord immediately. - StableeApp`
-  }
+  if (daysUntilDue === 30) return `Hello ${tenantName}, friendly reminder that your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due on ${dueDate}. - StableeApp`
+  if (daysUntilDue === 14) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 2 weeks on ${dueDate}. Please prepare. - StableeApp`
+  if (daysUntilDue === 7) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 7 days on ${dueDate}. Please prepare payment. - StableeApp`
+  if (daysUntilDue === 3) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due in 3 days on ${dueDate}. Kindly make payment promptly. - StableeApp`
+  if (daysUntilDue === 1) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due TOMORROW (${dueDate}). Please ensure payment is ready. - StableeApp`
+  if (daysUntilDue === 0) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due TODAY (${dueDate}). Please make payment immediately. - StableeApp`
+  if (daysUntilDue < 0) return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} was due on ${dueDate} and is now OVERDUE. Please contact your landlord immediately. - StableeApp`
   return `Hello ${tenantName}, your rent of ${formattedAmount} for ${propertyName} - ${unitNumber} is due on ${dueDate}. - StableeApp`
 }
 
@@ -34,65 +20,62 @@ async function sendScheduledReminders() {
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const todayStr = today.toISOString().split('T')[0]
 
-  const reminderDays = [30, 14, 7, 3, 1, 0, -3]
+  const { data: landlords } = await supabase
+    .from('landlords')
+    .select('id, plan, reminder_days')
+    .in('plan', ['starter', 'pro'])
 
-  for (const days of reminderDays) {
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() + days)
-    const targetDateStr = targetDate.toISOString().split('T')[0]
+  if (!landlords || landlords.length === 0) return
 
-    const { data: tenants, error } = await supabase
-      .from('tenants')
-      .select('*, units!inner(unit_number, rent_amount, properties!inner(name, landlord_id))')
-      .eq('next_due_date', targetDateStr)
+  for (const landlord of landlords) {
+    const reminderDays = landlord.reminder_days || [30, 14, 7, 3, 1, 0, -3]
 
-    if (error) {
-      console.error(`Error fetching tenants for day ${days}:`, error)
-      continue
-    }
+    for (const days of reminderDays) {
+      const targetDate = new Date(today)
+      targetDate.setDate(today.getDate() + days)
+      const targetDateStr = targetDate.toISOString().split('T')[0]
 
-    if (!tenants || tenants.length === 0) continue
+      const { data: tenants, error } = await supabase
+        .from('tenants')
+        .select('*, units!inner(unit_number, rent_amount, properties!inner(name, landlord_id))')
+        .eq('next_due_date', targetDateStr)
+        .eq('units.properties.landlord_id', landlord.id)
 
-    for (const tenant of tenants) {
-      const { data: landlord } = await supabase
-        .from('landlords')
-        .select('plan')
-        .eq('id', tenant.units.properties.landlord_id)
-        .single()
+      if (error || !tenants || tenants.length === 0) continue
 
-      if (!landlord || landlord.plan === 'free') continue
+      for (const tenant of tenants) {
+        const { data: existingReminder } = await supabase
+          .from('reminders')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('status', 'sent')
+          .gte('created_at', `${todayStr}T00:00:00.000Z`)
 
-      const todayStr = today.toISOString().split('T')[0]
-      const { data: existingReminder } = await supabase
-        .from('reminders')
-        .select('id')
-        .eq('tenant_id', tenant.id)
-        .eq('status', 'sent')
-        .gte('created_at', `${todayStr}T00:00:00.000Z`)
+        if (existingReminder && existingReminder.length > 0) continue
 
-      if (existingReminder && existingReminder.length > 0) continue
+        const message = buildReminderMessage(
+          tenant.full_name,
+          tenant.units.rent_amount,
+          tenant.next_due_date,
+          tenant.units.properties.name,
+          tenant.units.unit_number,
+          days
+        )
 
-      const message = buildReminderMessage(
-        tenant.full_name,
-        tenant.units.rent_amount,
-        tenant.next_due_date,
-        tenant.units.properties.name,
-        tenant.units.unit_number,
-        days
-      )
+        const result = await sendSMS(tenant.phone, message)
 
-      const result = await sendSMS(tenant.phone, message)
+        await supabase.from('reminders').insert([{
+          tenant_id: tenant.id,
+          channel: 'sms',
+          status: result.success ? 'sent' : 'failed',
+          sent_at: new Date().toISOString(),
+          message_id: result.data?.message_id || null
+        }])
 
-      await supabase.from('reminders').insert([{
-        tenant_id: tenant.id,
-        channel: 'sms',
-        status: result.success ? 'sent' : 'failed',
-        sent_at: new Date().toISOString(),
-        message_id: result.data?.message_id || null
-      }])
-
-      console.log(`Reminder ${result.success ? 'sent' : 'failed'} to ${tenant.full_name} (${days} days)`)
+        console.log(`Reminder ${result.success ? 'sent' : 'failed'} to ${tenant.full_name} (${days} days)`)
+      }
     }
   }
 

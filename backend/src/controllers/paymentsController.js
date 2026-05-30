@@ -150,11 +150,32 @@ exports.deletePayment = async (req, res) => {
 
   if (fetchError || !payment) return res.status(404).json({ error: 'Payment not found' })
 
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('*, units(payment_cycle)')
+    .eq('id', payment.tenant_id)
+    .single()
+
   const { error } = await supabase
     .from('payments')
     .delete()
     .eq('id', req.params.id)
 
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ message: 'Payment deleted' })
+
+  if (tenant) {
+    const prevDate = new Date(tenant.next_due_date)
+    switch (tenant.units.payment_cycle) {
+      case 'monthly': prevDate.setMonth(prevDate.getMonth() - 1); break
+      case 'quarterly': prevDate.setMonth(prevDate.getMonth() - 3); break
+      case 'yearly': prevDate.setFullYear(prevDate.getFullYear() - 1); break
+      default: prevDate.setMonth(prevDate.getMonth() - 1)
+    }
+    await supabase
+      .from('tenants')
+      .update({ next_due_date: prevDate.toISOString().split('T')[0] })
+      .eq('id', payment.tenant_id)
+  }
+
+  res.json({ message: 'Payment deleted and due date reversed' })
 }
