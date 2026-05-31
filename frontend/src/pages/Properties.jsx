@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, ChevronRight, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import PageHeader from '../components/PageHeader'
+import BottomNav from '../components/BottomNav'
+import SkeletonCard from '../components/SkeletonCard'
 import api from '../api'
 
 export default function Properties() {
@@ -8,14 +12,16 @@ export default function Properties() {
   const [showForm, setShowForm] = useState(false)
   const [editProperty, setEditProperty] = useState(null)
   const [form, setForm] = useState({ name: '', address: '', city: '' })
-  const [loading, setLoading] = useState(false)
-  const [deleting, setDeleting] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => { fetchProperties() }, [])
 
   const fetchProperties = () => {
-    api.get('/properties').then(res => setProperties(res.data))
+    api.get('/properties')
+      .then(res => setProperties(res.data))
+      .finally(() => setLoading(false))
   }
 
   const handleEdit = (property) => {
@@ -25,21 +31,19 @@ export default function Properties() {
   }
 
   const handleDelete = async (id, name) => {
-    setDeleting(id)
+    const toastId = toast.loading(`Deleting ${name}...`)
     try {
       await api.delete(`/properties/${id}`)
-      toast.success(`${name} deleted`)
+      toast.success(`${name} deleted`, { id: toastId })
       fetchProperties()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to delete property')
-    } finally {
-      setDeleting(null)
+      toast.error(err.response?.data?.error || 'Failed to delete', { id: toastId })
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
     try {
       if (editProperty) {
         await api.put(`/properties/${editProperty.id}`, form)
@@ -58,118 +62,130 @@ export default function Properties() {
         toast.error(data.error)
         setTimeout(() => navigate('/pricing'), 1500)
       } else {
-        toast.error(data?.error || 'Failed to save property')
+        toast.error(data?.error || 'Failed to save')
       }
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="text-sm text-blue-600 hover:underline">← Dashboard</button>
-        <span className="text-lg font-bold text-blue-600">Properties</span>
-        <button
-          onClick={() => { setEditProperty(null); setForm({ name: '', address: '', city: '' }); setShowForm(!showForm) }}
-          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
-        >
-          + Add
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50 pb-24">
+      <PageHeader
+        title="Properties"
+        action={
+          <button
+            onClick={() => { setEditProperty(null); setForm({ name: '', address: '', city: '' }); setShowForm(true) }}
+            className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} />
+          </button>
+        }
+      />
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="px-4 py-4">
         {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+          <div className="card p-5 mb-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               {editProperty ? 'Edit property' : 'New property'}
             </h3>
-            <div className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Property name</label>
+                <label className="label">Property name</label>
                 <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="e.g. Marina Court"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Address</label>
+                <label className="label">Address</label>
                 <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Street address"
                   value={form.address}
                   onChange={e => setForm({ ...form, address: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">City</label>
+                <label className="label">City</label>
                 <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="e.g. Lagos"
                   value={form.city}
                   onChange={e => setForm({ ...form, city: e.target.value })}
                 />
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : editProperty ? 'Update property' : 'Save property'}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={saving} className="btn-primary">
+                  {saving ? 'Saving...' : editProperty ? 'Update' : 'Add property'}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); setEditProperty(null) }}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         )}
 
-        {properties.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">🏠</p>
-            <p className="text-gray-500 text-sm font-medium">No properties yet</p>
-            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <SkeletonCard key={i} lines={2} />)}
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="text-center py-20">
+            <Building2 size={48} className="text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">No properties yet</p>
+            <p className="text-gray-400 text-sm mt-1">Tap + to add your first property</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {properties.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="cursor-pointer" onClick={() => navigate(`/properties/${p.id}/units`)}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{p.name}</h3>
-                      <p className="text-xs text-gray-400 mt-1">{p.address}{p.city ? `, ${p.city}` : ''}</p>
+              <div key={p.id} className="card p-4">
+                <div
+                  className="flex justify-between items-center cursor-pointer"
+                  onClick={() => navigate(`/properties/${p.id}/units`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Building2 size={20} className="text-blue-600" />
                     </div>
-                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                      {p.units?.[0]?.count || 0} units
-                    </span>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {p.address}{p.city ? `, ${p.city}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="badge-info">{p.units?.[0]?.count || 0} units</span>
+                    <ChevronRight size={16} className="text-gray-300" />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
                   <button
                     onClick={() => navigate(`/properties/${p.id}/units`)}
-                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
+                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-2 rounded-xl hover:bg-blue-100 font-medium transition-colors"
                   >
                     View units
                   </button>
                   <button
                     onClick={() => handleEdit(p)}
-                    className="flex-1 text-xs bg-gray-50 text-gray-600 py-1.5 rounded-lg hover:bg-gray-100"
+                    className="flex-1 text-xs bg-gray-50 text-gray-600 py-2 rounded-xl hover:bg-gray-100 font-medium transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(p.id, p.name)}
-                    disabled={deleting === p.id}
-                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                    className="flex-1 text-xs bg-red-50 text-red-500 py-2 rounded-xl hover:bg-red-100 font-medium transition-colors"
                   >
-                    {deleting === p.id ? 'Deleting...' : 'Delete'}
+                    Delete
                   </button>
                 </div>
               </div>
@@ -177,6 +193,7 @@ export default function Properties() {
           </div>
         )}
       </div>
+      <BottomNav />
     </div>
   )
 }

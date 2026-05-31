@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
+import PageHeader from '../components/PageHeader'
+import BottomNav from '../components/BottomNav'
+import SkeletonCard from '../components/SkeletonCard'
 import api from '../api'
 
 export default function Tenants() {
@@ -13,17 +17,21 @@ export default function Tenants() {
   const [form, setForm] = useState({
     unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: ''
   })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchTenants()
-    api.get('/properties').then(res => setProperties(res.data))
+    Promise.all([
+      api.get('/tenants'),
+      api.get('/properties')
+    ]).then(([tenantsRes, propsRes]) => {
+      setTenants(tenantsRes.data)
+      setProperties(propsRes.data)
+    }).finally(() => setLoading(false))
   }, [])
 
-  const fetchTenants = () => {
-    api.get('/tenants').then(res => setTenants(res.data))
-  }
+  const fetchTenants = () => api.get('/tenants').then(res => setTenants(res.data))
 
   const handlePropertyChange = async (property_id) => {
     setSelectedProperty(property_id)
@@ -31,9 +39,7 @@ export default function Tenants() {
     if (property_id) {
       const res = await api.get(`/units/${property_id}`)
       setUnits(res.data.filter(u => u.status === 'vacant'))
-    } else {
-      setUnits([])
-    }
+    } else setUnits([])
   }
 
   const handleEdit = (tenant) => {
@@ -49,55 +55,48 @@ export default function Tenants() {
     setShowForm(true)
   }
 
-  const handleDelete = async (tenant_id, name) => {
-    const toastId = toast.loading(`Deleting ${name}...`)
+  const handleDelete = async (id, name) => {
+    const toastId = toast.loading(`Removing ${name}...`)
     try {
-      await api.delete(`/tenants/${tenant_id}`)
+      await api.delete(`/tenants/${id}`)
       toast.success(`${name} removed`, { id: toastId })
       fetchTenants()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to delete tenant', { id: toastId })
+      toast.error(err.response?.data?.error || 'Failed to delete', { id: toastId })
     }
   }
 
   const sendReminder = async (tenant_id, name) => {
-    const toastId = toast.loading(`Sending reminder to ${name}...`)
+    const toastId = toast.loading(`Sending reminder...`)
     try {
       const res = await api.post('/reminders/send', { tenant_id })
       if (res.data.pending) {
-        toast('Reminder logged. SMS pending sender ID approval.', {
-          id: toastId,
-          icon: '⏳'
-        })
+        toast('Reminder logged. SMS pending approval.', { id: toastId, icon: '⏳' })
       } else {
         toast.success(`Reminder sent to ${name}`, { id: toastId })
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to send reminder', { id: toastId })
+      toast.error('Failed to send reminder', { id: toastId })
     }
   }
 
   const sendPortalLink = async (tenant_id, name) => {
-    const toastId = toast.loading(`Sending portal link to ${name}...`)
+    const toastId = toast.loading(`Generating portal link...`)
     try {
       const res = await api.post(`/tenant-portal/generate/${tenant_id}`)
       if (res.data.sms_sent) {
         toast.success(`Portal link sent to ${name}`, { id: toastId })
       } else {
-        toast(`Portal link generated. SMS pending approval. Copy: ${res.data.portal_url}`, {
-          id: toastId,
-          icon: '🔗',
-          duration: 8000
-        })
+        toast(`Portal ready. Copy: ${res.data.portal_url}`, { id: toastId, icon: '🔗', duration: 8000 })
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to generate portal link', { id: toastId })
+      toast.error('Failed to generate portal link', { id: toastId })
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
     try {
       if (editTenant) {
         await api.put(`/tenants/${editTenant.id}`, {
@@ -116,181 +115,136 @@ export default function Tenants() {
       setShowForm(false)
       fetchTenants()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to save tenant')
+      const data = err.response?.data
+      if (data?.upgrade) {
+        toast.error(data.error)
+        setTimeout(() => navigate('/pricing'), 1500)
+      } else {
+        toast.error(data?.error || 'Failed to save tenant')
+      }
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="text-sm text-blue-600 hover:underline">← Dashboard</button>
-        <span className="text-lg font-bold text-blue-600">Tenants</span>
-        <button
-          onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' }); setShowForm(!showForm) }}
-          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
-        >
-          + Add
-        </button>
-      </div>
+  const isOverdue = (date) => new Date(date) < new Date()
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+      <PageHeader
+        title="Tenants"
+        action={
+          <button
+            onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' }); setShowForm(true) }}
+            className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} />
+          </button>
+        }
+      />
+
+      <div className="px-4 py-4">
         {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+          <div className="card p-5 mb-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               {editTenant ? 'Edit tenant' : 'New tenant'}
             </h3>
-            <div className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {!editTenant && (
                 <>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Property</label>
-                    <select
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={selectedProperty}
-                      onChange={e => handlePropertyChange(e.target.value)}
-                      required
-                    >
+                    <label className="label">Property</label>
+                    <select className="input" value={selectedProperty} onChange={e => handlePropertyChange(e.target.value)} required>
                       <option value="">Select property</option>
-                      {properties.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
+                      {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Unit</label>
-                    <select
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={form.unit_id}
-                      onChange={e => setForm({ ...form, unit_id: e.target.value })}
-                      required
-                    >
+                    <label className="label">Unit</label>
+                    <select className="input" value={form.unit_id} onChange={e => setForm({ ...form, unit_id: e.target.value })} required>
                       <option value="">Select vacant unit</option>
-                      {units.map(u => (
-                        <option key={u.id} value={u.id}>{u.unit_number} — ₦{Number(u.rent_amount).toLocaleString()}</option>
-                      ))}
+                      {units.map(u => <option key={u.id} value={u.id}>{u.unit_number} — ₦{Number(u.rent_amount).toLocaleString()}</option>)}
                     </select>
                   </div>
                 </>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Full name</label>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.full_name}
-                  onChange={e => setForm({ ...form, full_name: e.target.value })}
-                  required
-                />
+                <label className="label">Full name</label>
+                <input className="input" placeholder="Tenant's full name" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} required />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Phone</label>
-                <input
-                  type="tel"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
-                  required
-                />
+                <label className="label">Phone</label>
+                <input className="input" type="tel" placeholder="080XXXXXXXX" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Email (optional)</label>
-                <input
-                  type="email"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                />
+                <label className="label">Email (optional)</label>
+                <input className="input" type="email" placeholder="tenant@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
               </div>
               {!editTenant && (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Lease start</label>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={form.lease_start}
-                    onChange={e => setForm({ ...form, lease_start: e.target.value })}
-                    required
-                  />
+                  <label className="label">Lease start</label>
+                  <input className="input" type="date" value={form.lease_start} onChange={e => setForm({ ...form, lease_start: e.target.value })} required />
                 </div>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Lease end</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.lease_end}
-                  onChange={e => setForm({ ...form, lease_end: e.target.value })}
-                />
+                <label className="label">Lease end</label>
+                <input className="input" type="date" value={form.lease_end} onChange={e => setForm({ ...form, lease_end: e.target.value })} />
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : editTenant ? 'Update tenant' : 'Save tenant'}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={saving} className="btn-primary">
+                  {saving ? 'Saving...' : editTenant ? 'Update tenant' : 'Add tenant'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowForm(false); setEditTenant(null) }}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                >
+                <button type="button" onClick={() => { setShowForm(false); setEditTenant(null) }} className="btn-secondary">
                   Cancel
                 </button>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         )}
 
-        {tenants.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">👥</p>
-            <p className="text-gray-500 text-sm font-medium">No tenants yet</p>
-            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <SkeletonCard key={i} lines={3} />)}
+          </div>
+        ) : tenants.length === 0 ? (
+          <div className="text-center py-20">
+            <Users size={48} className="text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">No tenants yet</p>
+            <p className="text-gray-400 text-sm mt-1">Tap + to add your first tenant</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {tenants.map(t => (
-              <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{t.full_name}</h3>
-                    <p className="text-xs text-gray-400 mt-1">{t.phone}</p>
-                    <p className="text-xs text-gray-400">
-                      {t.units?.properties?.name} · {t.units?.unit_number}
-                    </p>
+              <div key={t.id} className="card p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">
+                      {t.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{t.full_name}</p>
+                      <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
+                      <p className="text-xs text-gray-400">{t.phone}</p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-400">Next due</p>
-                    <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'}`}>
+                    <p className="text-xs text-gray-400 mb-1">Next due</p>
+                    <span className={isOverdue(t.next_due_date) ? 'badge-danger' : 'badge-info'}>
                       {t.next_due_date}
-                    </p>
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                  <button
-                    onClick={() => sendReminder(t.id, t.full_name)}
-                    className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100"
-                  >
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button onClick={() => sendReminder(t.id, t.full_name)} className="text-xs bg-green-50 text-green-700 py-2 rounded-xl hover:bg-green-100 font-medium transition-colors">
                     Remind
                   </button>
-                  <button
-                    onClick={() => sendPortalLink(t.id, t.full_name)}
-                    className="flex-1 text-xs bg-purple-50 text-purple-600 py-1.5 rounded-lg hover:bg-purple-100"
-                  >
+                  <button onClick={() => sendPortalLink(t.id, t.full_name)} className="text-xs bg-purple-50 text-purple-700 py-2 rounded-xl hover:bg-purple-100 font-medium transition-colors">
                     Portal
                   </button>
-                  <button
-                    onClick={() => handleEdit(t)}
-                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
-                  >
+                  <button onClick={() => handleEdit(t)} className="text-xs bg-blue-50 text-blue-600 py-2 rounded-xl hover:bg-blue-100 font-medium transition-colors">
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(t.id, t.full_name)}
-                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
-                  >
+                  <button onClick={() => handleDelete(t.id, t.full_name)} className="text-xs bg-red-50 text-red-500 py-2 rounded-xl hover:bg-red-100 font-medium transition-colors">
                     Delete
                   </button>
                 </div>
@@ -299,6 +253,7 @@ export default function Tenants() {
           </div>
         )}
       </div>
+      <BottomNav />
     </div>
   )
 }

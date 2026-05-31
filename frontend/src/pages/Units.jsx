@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Plus, Home } from 'lucide-react'
 import toast from 'react-hot-toast'
+import PageHeader from '../components/PageHeader'
+import BottomNav from '../components/BottomNav'
+import SkeletonCard from '../components/SkeletonCard'
 import api from '../api'
 
 export default function Units() {
@@ -9,13 +13,16 @@ export default function Units() {
   const [showForm, setShowForm] = useState(false)
   const [editUnit, setEditUnit] = useState(null)
   const [form, setForm] = useState({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => { fetchUnits() }, [property_id])
 
   const fetchUnits = () => {
-    api.get(`/units/${property_id}`).then(res => setUnits(res.data))
+    api.get(`/units/${property_id}`)
+      .then(res => setUnits(res.data))
+      .finally(() => setLoading(false))
   }
 
   const handleEdit = (unit) => {
@@ -31,13 +38,13 @@ export default function Units() {
       toast.success(`${name} deleted`, { id: toastId })
       fetchUnits()
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to delete unit', { id: toastId })
+      toast.error(err.response?.data?.error || 'Failed to delete', { id: toastId })
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
     try {
       if (editUnit) {
         await api.put(`/units/${editUnit.id}`, { ...form, rent_amount: Number(form.rent_amount) })
@@ -59,117 +66,96 @@ export default function Units() {
         toast.error(data?.error || 'Failed to save unit')
       }
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <button onClick={() => navigate('/properties')} className="text-sm text-blue-600 hover:underline">← Properties</button>
-        <span className="text-lg font-bold text-blue-600">Units</span>
-        <button
-          onClick={() => { setEditUnit(null); setForm({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' }); setShowForm(!showForm) }}
-          className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
-        >
-          + Add
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50 pb-24">
+      <PageHeader
+        title="Units"
+        backTo="/properties"
+        action={
+          <button
+            onClick={() => { setEditUnit(null); setForm({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' }); setShowForm(true) }}
+            className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} />
+          </button>
+        }
+      />
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="px-4 py-4">
         {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+          <div className="card p-5 mb-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               {editUnit ? 'Edit unit' : 'New unit'}
             </h3>
-            <div className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Unit number</label>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.unit_number}
-                  onChange={e => setForm({ ...form, unit_number: e.target.value })}
-                  required
-                />
+                <label className="label">Unit number</label>
+                <input className="input" placeholder="e.g. Unit 1A" value={form.unit_number} onChange={e => setForm({ ...form, unit_number: e.target.value })} required />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Rent amount (₦)</label>
-                <input
-                  type="number"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.rent_amount}
-                  onChange={e => setForm({ ...form, rent_amount: e.target.value })}
-                  required
-                />
+                <label className="label">Rent amount (₦)</label>
+                <input className="input" type="number" placeholder="150000" value={form.rent_amount} onChange={e => setForm({ ...form, rent_amount: e.target.value })} required />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Payment cycle</label>
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.payment_cycle}
-                  onChange={e => setForm({ ...form, payment_cycle: e.target.value })}
-                >
+                <label className="label">Payment cycle</label>
+                <select className="input" value={form.payment_cycle} onChange={e => setForm({ ...form, payment_cycle: e.target.value })}>
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
                   <option value="yearly">Yearly</option>
                 </select>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Saving...' : editUnit ? 'Update unit' : 'Save unit'}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={saving} className="btn-primary">
+                  {saving ? 'Saving...' : editUnit ? 'Update unit' : 'Add unit'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowForm(false); setEditUnit(null) }}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                >
+                <button type="button" onClick={() => { setShowForm(false); setEditUnit(null) }} className="btn-secondary">
                   Cancel
                 </button>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         )}
 
-        {units.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">🏢</p>
-            <p className="text-gray-500 text-sm font-medium">No units yet</p>
-            <p className="text-gray-400 text-xs mt-1">Tap + Add to get started</p>
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <SkeletonCard key={i} lines={2} />)}
+          </div>
+        ) : units.length === 0 ? (
+          <div className="text-center py-20">
+            <Home size={48} className="text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">No units yet</p>
+            <p className="text-gray-400 text-sm mt-1">Tap + to add units to this property</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {units.map(u => (
-              <div key={u.id} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="flex justify-between items-start">
+              <div key={u.id} className="card p-4">
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{u.unit_number}</h3>
-                    <p className="text-xs text-gray-400 mt-1">₦{Number(u.rent_amount).toLocaleString()} / {u.payment_cycle}</p>
+                    <p className="font-semibold text-gray-900 text-sm">{u.unit_number}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      ₦{Number(u.rent_amount).toLocaleString()} / {u.payment_cycle}
+                    </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-lg font-medium ${u.status === 'occupied' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                  <span className={u.status === 'occupied' ? 'badge-success' : 'badge-warning'}>
                     {u.status}
                   </span>
                 </div>
                 {u.tenants?.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-50">
-                    <p className="text-xs text-gray-500">{u.tenants[0].full_name} · {u.tenants[0].phone}</p>
-                    <p className="text-xs text-gray-400">Due: {u.tenants[0].next_due_date}</p>
+                  <div className="bg-gray-50 rounded-xl p-3 mb-3">
+                    <p className="text-xs font-medium text-gray-700">{u.tenants[0].full_name}</p>
+                    <p className="text-xs text-gray-400">{u.tenants[0].phone} · Due: {u.tenants[0].next_due_date}</p>
                   </div>
                 )}
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                  <button
-                    onClick={() => handleEdit(u)}
-                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
-                  >
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(u)} className="flex-1 text-xs bg-blue-50 text-blue-600 py-2 rounded-xl hover:bg-blue-100 font-medium transition-colors">
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(u.id, u.unit_number)}
-                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
-                  >
+                  <button onClick={() => handleDelete(u.id, u.unit_number)} className="flex-1 text-xs bg-red-50 text-red-500 py-2 rounded-xl hover:bg-red-100 font-medium transition-colors">
                     Delete
                   </button>
                 </div>
@@ -178,6 +164,7 @@ export default function Units() {
           </div>
         )}
       </div>
+      <BottomNav />
     </div>
   )
 }
