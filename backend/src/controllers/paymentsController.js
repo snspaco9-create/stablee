@@ -103,23 +103,29 @@ exports.getDashboardSummary = async (req, res) => {
   const unitIds = units.map(u => u.id)
 
   let collected = 0
+  let paidUnitIds = []
+
   if (unitIds.length > 0) {
     const { data: payments, error: paymentsError } = await supabase
       .from('payments')
-      .select('amount')
+      .select('amount, unit_id')
       .in('unit_id', unitIds)
       .eq('status', 'paid')
       .gte('payment_date', startOfMonth.toISOString().split('T')[0])
 
     if (paymentsError) return res.status(500).json({ error: paymentsError.message })
     collected = payments.reduce((sum, p) => sum + p.amount, 0)
+    paidUnitIds = [...new Set(payments.map(p => p.unit_id))]
   }
 
-  const outstanding = expected - collected
+  const unpaidUnits = units.filter(u => !paidUnitIds.includes(u.id))
+  const outstanding = unpaidUnits.reduce((sum, u) => sum + u.rent_amount, 0)
+  const paidCount = paidUnitIds.length
+  const unpaidCount = unpaidUnits.length
 
   const { data: overdue, error: overdueError } = await supabase
     .from('tenants')
-    .select('id, full_name, phone, next_due_date, units!inner(properties!inner(landlord_id))')
+    .select('id, full_name, phone, next_due_date, unit_id, units!inner(properties!inner(landlord_id))')
     .eq('units.properties.landlord_id', landlord_id)
     .lt('next_due_date', new Date().toISOString().split('T')[0])
 
@@ -136,11 +142,15 @@ exports.getDashboardSummary = async (req, res) => {
     expected,
     collected,
     outstanding,
+    paid_count: paidCount,
+    unpaid_count: unpaidCount,
+    total_units: units.length,
     overdue_count: overdue?.length || 0,
     overdue_tenants: overdue || [],
     upcoming_due: upcoming || []
   })
 }
+
 exports.deletePayment = async (req, res) => {
   const { data: payment, error: fetchError } = await supabase
     .from('payments')

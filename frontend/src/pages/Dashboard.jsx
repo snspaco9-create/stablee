@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Settings, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import api from '../api'
 
@@ -73,7 +73,7 @@ export default function Dashboard() {
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-5 text-white">
           <p className="text-xs text-blue-200 uppercase tracking-wide mb-1">This month</p>
           <p className="text-3xl font-bold mb-4">{summary ? fmt(summary.expected) : '—'}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="bg-white/10 rounded-xl p-3">
               <div className="flex items-center gap-1 mb-1">
                 <TrendingUp size={12} className="text-green-300" />
@@ -89,6 +89,18 @@ export default function Dashboard() {
               <p className="text-lg font-bold text-white">{summary ? fmt(summary.outstanding) : '—'}</p>
             </div>
           </div>
+          {summary && (
+            <div className="bg-white/10 rounded-xl p-3 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-xs text-blue-100">{summary.paid_count} paid this month</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-400" />
+                <span className="text-xs text-blue-100">{summary.unpaid_count} not yet paid</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -117,7 +129,7 @@ export default function Dashboard() {
             {summary.overdue_tenants.map(t => (
               <div key={t.id} className="flex justify-between items-center py-2 border-b border-red-100 last:border-0">
                 <span className="text-sm font-medium text-gray-800">{t.full_name}</span>
-                <span className="badge-danger">{t.next_due_date}</span>
+                <span className="text-xs text-red-500 font-medium">{t.next_due_date}</span>
               </div>
             ))}
           </div>
@@ -134,7 +146,7 @@ export default function Dashboard() {
             {summary.upcoming_due.map(t => (
               <div key={t.id} className="flex justify-between items-center py-2 border-b border-amber-100 last:border-0">
                 <span className="text-sm font-medium text-gray-800">{t.full_name}</span>
-                <span className="badge-warning">{t.next_due_date}</span>
+                <span className="text-xs text-amber-600 font-medium">{t.next_due_date}</span>
               </div>
             ))}
           </div>
