@@ -17,7 +17,7 @@ export default function Login() {
     setError('')
     try {
       const res = await api.post('/auth/login', form)
-      login(res.data.token, res.data.landlord)
+      login(res.data.token, res.data.landlord, res.data.refresh_token)
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed')

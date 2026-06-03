@@ -14,33 +14,76 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('landlord')
-    if (stored) setLandlord(JSON.parse(stored))
+    if (stored) {
+      try {
+        setLandlord(JSON.parse(stored))
+      } catch {
+        localStorage.removeItem('landlord')
+      }
+    }
     setLoading(false)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED' && session) {
         localStorage.setItem('token', session.access_token)
       }
+
       if (event === 'SIGNED_OUT') {
         localStorage.removeItem('token')
         localStorage.removeItem('landlord')
         setLandlord(null)
       }
+
+      if (event === 'SIGNED_IN' && session) {
+        localStorage.setItem('token', session.access_token)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    const handleStorageChange = (e) => {
+      if (e.key === 'landlord' && !e.newValue) {
+        setLandlord(null)
+        window.location.href = '/login'
+      }
+      if (e.key === 'token' && e.newValue) {
+        // token refreshed in another tab
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+
+    const refreshInterval = setInterval(async () => {
+      const token = localStorage.getItem('token')
+      if (!token) return
+
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error || !data.session) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('landlord')
+        setLandlord(null)
+        window.location.href = '/login'
+      } else {
+        localStorage.setItem('token', data.session.access_token)
+      }
+    }, 45 * 60 * 1000)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(refreshInterval)
+    }
   }, [])
 
-  const login = (token, landlordData) => {
+  const login = (token, landlordData, refreshToken) => {
     localStorage.setItem('token', token)
     localStorage.setItem('landlord', JSON.stringify(landlordData))
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
     setLandlord(landlordData)
   }
 
-  const logout = () => {
-    supabase.auth.signOut()
+  const logout = async () => {
+    await supabase.auth.signOut()
     localStorage.removeItem('token')
     localStorage.removeItem('landlord')
+    localStorage.removeItem('refresh_token')
     setLandlord(null)
   }
 
