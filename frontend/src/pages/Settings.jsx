@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { createClient } from '@supabase/supabase-js'
+import supabase from '../supabase'
 import toast from 'react-hot-toast'
+import BottomNav from '../components/BottomNav'
 import api from '../api'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
 
 const REMINDER_OPTIONS = [
   { days: 30, label: '30 days before' },
@@ -40,7 +36,7 @@ export default function Settings() {
   useEffect(() => {
     api.get('/landlords/profile').then(res => {
       if (res.data.reminder_days) setReminderDays(res.data.reminder_days)
-    })
+    }).catch(() => {})
   }, [])
 
   const toggleReminderDay = (day) => {
@@ -104,21 +100,24 @@ export default function Settings() {
     }
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="text-sm text-blue-600 hover:underline">← Dashboard</button>
-        <span className="text-lg font-bold text-blue-600">Settings</span>
-        <span></span>
+    <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white text-sm font-bold">S</span>
+          </div>
+          <span className="text-base font-bold text-gray-900">Settings</span>
+        </div>
       </div>
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-14 h-14 rounded-full bg-blue-100 text-blue-700 text-xl font-bold flex items-center justify-center">
               {landlord?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -156,7 +155,7 @@ export default function Settings() {
               <label className="block text-xs text-gray-500 mb-1">Email</label>
               <input
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
-                value={landlord?.email}
+                value={landlord?.email || ''}
                 disabled
               />
               <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
@@ -171,7 +170,7 @@ export default function Settings() {
           </form>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <form onSubmit={handlePasswordUpdate} className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-900">Change password</h3>
             <div>
@@ -213,12 +212,12 @@ export default function Settings() {
           </form>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-900 mb-1">Reminder preferences</h3>
-          <p className="text-xs text-gray-400 mb-4">Choose when to automatically remind tenants about rent</p>
+          <p className="text-xs text-gray-400 mb-4">Choose when to automatically remind tenants</p>
           {landlord?.plan === 'free' ? (
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
-              <p className="text-xs text-amber-700">Automatic reminders are available on Starter and Pro plans</p>
+              <p className="text-xs text-amber-700">Automatic reminders available on Starter and Pro plans</p>
               <button onClick={() => navigate('/pricing')} className="text-xs text-blue-600 mt-1 hover:underline">Upgrade now</button>
             </div>
           ) : (
@@ -247,7 +246,7 @@ export default function Settings() {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Subscription</h3>
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -260,24 +259,15 @@ export default function Settings() {
               {landlord?.plan?.charAt(0).toUpperCase() + landlord?.plan?.slice(1)}
             </span>
           </div>
-          {landlord?.plan === 'free' ? (
-            <button
-              onClick={() => navigate('/pricing')}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-            >
-              Upgrade plan
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('/pricing')}
-              className="w-full border border-gray-200 text-gray-600 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
-            >
-              Manage subscription
-            </button>
-          )}
+          <button
+            onClick={() => navigate('/pricing')}
+            className="w-full border border-gray-200 text-gray-600 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            {landlord?.plan === 'free' ? 'Upgrade plan' : 'Manage subscription'}
+          </button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-red-100 p-6">
+        <div className="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
           <h3 className="text-sm font-semibold text-red-600 mb-3">Danger zone</h3>
           <button
             onClick={handleLogout}
@@ -287,6 +277,8 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

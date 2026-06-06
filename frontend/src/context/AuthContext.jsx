@@ -1,10 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+import supabase from '../supabase'
 
 const AuthContext = createContext()
 
@@ -27,13 +22,11 @@ export function AuthProvider({ children }) {
       if (event === 'TOKEN_REFRESHED' && session) {
         localStorage.setItem('token', session.access_token)
       }
-
       if (event === 'SIGNED_OUT') {
         localStorage.removeItem('token')
         localStorage.removeItem('landlord')
         setLandlord(null)
       }
-
       if (event === 'SIGNED_IN' && session) {
         localStorage.setItem('token', session.access_token)
       }
@@ -44,16 +37,12 @@ export function AuthProvider({ children }) {
         setLandlord(null)
         window.location.href = '/login'
       }
-      if (e.key === 'token' && e.newValue) {
-        // token refreshed in another tab
-      }
     }
     window.addEventListener('storage', handleStorageChange)
 
     const refreshInterval = setInterval(async () => {
       const token = localStorage.getItem('token')
       if (!token) return
-
       const { data, error } = await supabase.auth.refreshSession()
       if (error || !data.session) {
         localStorage.removeItem('token')

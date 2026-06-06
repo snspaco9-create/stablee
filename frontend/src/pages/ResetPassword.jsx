@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+import supabase from '../supabase'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -17,11 +12,12 @@ export default function ResetPassword() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
       }
     })
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleSubmit = async (e) => {
@@ -72,7 +68,7 @@ export default function ResetPassword() {
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-16"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
