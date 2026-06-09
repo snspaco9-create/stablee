@@ -138,24 +138,6 @@ exports.getDashboardSummary = async (req, res) => {
     .gte('next_due_date', new Date().toISOString().split('T')[0])
     .lte('next_due_date', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
 
-  const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const todayStr = new Date().toISOString().split('T')[0]
-
-  const { data: expiringLeases } = await supabase
-    .from('tenants')
-    .select('id, full_name, lease_end, units!inner(unit_number, properties!inner(name, landlord_id))')
-    .eq('units.properties.landlord_id', landlord_id)
-    .gte('lease_end', todayStr)
-    .lte('lease_end', thirtyDaysFromNow)
-    .not('lease_end', 'is', null)
-
-  const { data: expiredLeases } = await supabase
-    .from('tenants')
-    .select('id, full_name, lease_end, units!inner(unit_number, properties!inner(name, landlord_id))')
-    .eq('units.properties.landlord_id', landlord_id)
-    .lt('lease_end', todayStr)
-    .not('lease_end', 'is', null)
-
   res.json({
     expected,
     collected,
@@ -165,9 +147,7 @@ exports.getDashboardSummary = async (req, res) => {
     total_units: units.length,
     overdue_count: overdue?.length || 0,
     overdue_tenants: overdue || [],
-    upcoming_due: upcoming || [],
-    expiring_leases: expiringLeases || [],
-    expired_leases: expiredLeases || []
+    upcoming_due: upcoming || []
   })
 }
 

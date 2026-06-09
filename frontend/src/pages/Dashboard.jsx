@@ -7,7 +7,7 @@ import { DashboardSkeleton } from '../components/Skeleton'
 import api from '../api'
 
 export default function Dashboard() {
-  const { landlord, logout } = useAuth()
+  const { landlord } = useAuth()
   const [summary, setSummary] = useState(null)
   const [stats, setStats] = useState({ properties: 0, tenants: 0 })
   const [loading, setLoading] = useState(true)
@@ -122,50 +122,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {summary?.expired_leases?.length > 0 && (
-            <div className="px-4 mb-4">
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <h3 className="text-sm font-semibold text-red-700">
-                    {summary.expired_leases.length} expired {summary.expired_leases.length === 1 ? 'lease' : 'leases'}
-                  </h3>
-                </div>
-                {summary.expired_leases.map(t => (
-                  <div key={t.id} className="flex justify-between items-center py-2 border-b border-red-100 last:border-0">
-                    <div>
-                      <span className="text-sm font-medium text-gray-800">{t.full_name}</span>
-                      <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
-                    </div>
-                    <span className="text-xs text-red-500 font-medium">Expired {t.lease_end}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {summary?.expiring_leases?.length > 0 && (
-            <div className="px-4 mb-4">
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                  <h3 className="text-sm font-semibold text-orange-700">
-                    {summary.expiring_leases.length} lease{summary.expiring_leases.length > 1 ? 's' : ''} expiring soon
-                  </h3>
-                </div>
-                {summary.expiring_leases.map(t => (
-                  <div key={t.id} className="flex justify-between items-center py-2 border-b border-orange-100 last:border-0">
-                    <div>
-                      <span className="text-sm font-medium text-gray-800">{t.full_name}</span>
-                      <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
-                    </div>
-                    <span className="text-xs text-orange-500 font-medium">Expires {t.lease_end}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {summary?.overdue_tenants?.length > 0 && (
             <div className="px-4 mb-4">
               <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
@@ -202,10 +158,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {summary?.overdue_tenants?.length === 0 &&
-            summary?.upcoming_due?.length === 0 &&
-            summary?.expiring_leases?.length === 0 &&
-            summary?.expired_leases?.length === 0 && (
+          {summary?.overdue_tenants?.length === 0 && summary?.upcoming_due?.length === 0 && (
             <div className="px-4 mb-4">
               <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center shadow-sm">
                 <div className="text-4xl mb-3">✅</div>
