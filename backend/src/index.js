@@ -36,6 +36,9 @@ app.get('/', (req, res) => {
 const authRoutes = require('./routes/auth')
 app.use('/api/auth', authLimiter, authRoutes)
 
+const adminRoutes = require('./routes/admin')
+app.use('/api/admin', adminRoutes)
+
 const propertyRoutes = require('./routes/properties')
 app.use('/api/properties', propertyRoutes)
 
@@ -66,8 +69,8 @@ startScheduler()
 const tenantPortalRoutes = require('./routes/tenant-portal')
 app.use('/api/tenant-portal', tenantPortalRoutes)
 
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Stablee backend running on port ${PORT}`)
 })
-

@@ -70,9 +70,16 @@ exports.verifyPayment = async (req, res) => {
     if (status === 'success') {
       const { landlord_id, plan } = metadata
 
+      const subscriptionEnd = new Date()
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+
       await supabaseAdmin
         .from('landlords')
-        .update({ plan })
+        .update({
+          plan,
+          subscription_start: new Date().toISOString(),
+          subscription_end: subscriptionEnd.toISOString()
+        })
         .eq('id', landlord_id)
 
       return res.redirect(`https://stablee.vercel.app/?payment=success&plan=${plan}`)

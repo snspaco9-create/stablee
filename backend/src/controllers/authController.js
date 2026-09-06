@@ -38,7 +38,8 @@ exports.register = async (req, res) => {
       id: landlord.id,
       full_name: landlord.full_name,
       email: landlord.email,
-      plan: landlord.plan
+      plan: landlord.plan,
+      is_admin: landlord.is_admin || false
     }
   })
 }
@@ -70,7 +71,8 @@ exports.login = async (req, res) => {
       id: landlord.id,
       full_name: landlord.full_name,
       email: landlord.email,
-      plan: landlord.plan
+      plan: landlord.plan,
+      is_admin: landlord.is_admin || false
     }
   })
 }

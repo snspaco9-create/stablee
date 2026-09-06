@@ -15,6 +15,9 @@ import Settings from './pages/Settings'
 import TenantPortal from './pages/TenantPortal'
 import Reminders from './pages/Reminders'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import AdminLogin from './pages/admin/AdminLogin'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminRoute from './pages/admin/AdminRoute'
 
 function PrivateRoute({ children }) {
   const { landlord, loading } = useAuth()
@@ -41,7 +44,15 @@ export default function App() {
       <Route path="/tenant/:token" element={<TenantPortal />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/reminders" element={<PrivateRoute><Reminders /></PrivateRoute>} />
+     <Route path="/admin/login" element={<AdminLogin />} />
+    <Route path="/admin/dashboard" element={
+    <AdminRoute>
+    <AdminDashboard />
+    </AdminRoute>
+}
+      />
     </Routes>
+  
   )
 }
 
