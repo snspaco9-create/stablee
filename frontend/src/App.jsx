@@ -22,7 +22,16 @@ import AdminRoute from './pages/admin/AdminRoute'
 function PrivateRoute({ children }) {
   const { landlord, loading } = useAuth()
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
-  return landlord ? children : <Navigate to="/login" />
+  
+  // If no landlord, redirect to login
+  if (!landlord) return <Navigate to="/login" />
+  
+  // If landlord is admin, redirect to admin dashboard
+  if (landlord.is_admin) {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+  
+  return children
 }
 
 export default function App() {
