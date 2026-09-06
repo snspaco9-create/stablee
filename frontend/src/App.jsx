@@ -40,22 +40,15 @@ export default function App() {
       <Route path="/pricing" element={<PrivateRoute><Pricing /></PrivateRoute>} />
       <Route path="/checkout/:plan" element={<PrivateRoute><Checkout /></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-     <Route path="/tenant/:token" element={<TenantPortal />} />
       <Route path="/tenant/:token" element={<TenantPortal />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/reminders" element={<PrivateRoute><Reminders /></PrivateRoute>} />
-     <Route path="/admin/login" element={<AdminLogin />} />
-    <Route path="/admin/dashboard" element={
-    <AdminRoute>
-    <AdminDashboard />
-    </AdminRoute>
-}
-      />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={
+        <AdminRoute>
+          <AdminDashboard />
+        </AdminRoute>
+      } />
     </Routes>
-  
   )
 }
-
-
-
-

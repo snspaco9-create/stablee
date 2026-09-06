@@ -1,34 +1,30 @@
-import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import api from '../../api'
 
 export default function AdminRoute({ children }) {
-  const [status, setStatus] = useState('checking')
-
-  useEffect(() => {
+  // Get landlord from localStorage
+  const landlordStr = localStorage.getItem('landlord')
+  
+  if (!landlordStr) {
+    return <Navigate to="/admin/login" replace />
+  }
+  
+  try {
+    const landlord = JSON.parse(landlordStr)
+    
+    // Check if user is admin
+    if (!landlord.is_admin) {
+      return <Navigate to="/admin/login" replace />
+    }
+    
+    // Check if token exists
     const token = localStorage.getItem('token')
     if (!token) {
-      setStatus('denied')
-      return
+      return <Navigate to="/admin/login" replace />
     }
-    api.get('/landlords/profile')
-      .then(res => {
-        if (res.data.is_admin) {
-          setStatus('allowed')
-        } else {
-          setStatus('denied')
-        }
-      })
-      .catch(() => setStatus('denied'))
-  }, [])
-
-  if (status === 'checking') return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <p className="text-gray-400 text-sm">Verifying access...</p>
-    </div>
-  )
-
-  if (status === 'denied') return <Navigate to="/admin/login" />
-
-  return children
+    
+    return children
+  } catch (error) {
+    // If there's an error parsing, redirect to login
+    return <Navigate to="/admin/login" replace />
+  }
 }
