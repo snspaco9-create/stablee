@@ -12,12 +12,18 @@ export default function Tenants() {
   const [showForm, setShowForm] = useState(false)
   const [editTenant, setEditTenant] = useState(null)
   const [selectedProperty, setSelectedProperty] = useState('')
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState({
-    unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: ''
+    unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: ''
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
+
+  const filteredTenants = tenants.filter(t =>
+    t.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    t.phone?.includes(search)
+  )
 
   useEffect(() => {
     fetchTenants()
@@ -50,7 +56,8 @@ export default function Tenants() {
       phone: tenant.phone,
       email: tenant.email || '',
       lease_start: tenant.lease_start || '',
-      lease_end: tenant.lease_end || ''
+      lease_end: tenant.lease_end || '',
+      notes: tenant.notes || ''
     })
     setShowForm(true)
   }
@@ -80,6 +87,16 @@ export default function Tenants() {
     }
   }
 
+  const sendBulkReminders = async () => {
+    const toastId = toast.loading('Sending reminders to all overdue tenants...')
+    try {
+      const res = await api.post('/reminders/send-bulk', { days_ahead: 0 })
+      toast.success(`Sent ${res.data.sent} reminders`, { id: toastId })
+    } catch (err) {
+      toast.error('Failed to send bulk reminders', { id: toastId })
+    }
+  }
+
   const sendPortalLink = async (tenant_id, name) => {
     const toastId = toast.loading(`Sending portal link to ${name}...`)
     try {
@@ -103,14 +120,15 @@ export default function Tenants() {
           full_name: form.full_name,
           phone: form.phone,
           email: form.email,
-          lease_end: form.lease_end
+          lease_end: form.lease_end,
+          notes: form.notes
         })
         toast.success('Tenant updated')
       } else {
         await api.post('/tenants', form)
         toast.success('Tenant added')
       }
-      setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' })
+      setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: '' })
       setEditTenant(null)
       setShowForm(false)
       fetchTenants()
@@ -136,12 +154,20 @@ export default function Tenants() {
           </div>
           <span className="text-base font-bold text-gray-900">Tenants</span>
         </div>
-        <button
-          onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '' }); setShowForm(!showForm) }}
-          className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg hover:bg-blue-700"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={sendBulkReminders}
+            className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700"
+          >
+            Bulk remind
+          </button>
+          <button
+            onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: '' }); setShowForm(!showForm) }}
+            className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg hover:bg-blue-700"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
@@ -232,6 +258,16 @@ export default function Tenants() {
                   onChange={e => setForm({ ...form, lease_end: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+                <textarea
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={2}
+                  placeholder="e.g. Has a dog, pays on time, prefers WhatsApp"
+                  value={form.notes || ''}
+                  onChange={e => setForm({ ...form, notes: e.target.value })}
+                />
+              </div>
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -261,31 +297,51 @@ export default function Tenants() {
             <p className="text-gray-400 text-xs mt-1">Tap + to get started</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {tenants.map(t => (
-              <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{t.full_name}</h3>
-                    <p className="text-xs text-gray-400 mt-1">{t.phone}</p>
-                    <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400">Next due</p>
-                    <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'}`}>
-                      {t.next_due_date}
-                    </p>
-                  </div>
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search by name or phone..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-4">
+              {filteredTenants.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-sm">No tenants found matching "{search}"</p>
                 </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                  <button onClick={() => sendReminder(t.id, t.full_name)} className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100">Remind</button>
-                  <button onClick={() => sendPortalLink(t.id, t.full_name)} className="flex-1 text-xs bg-purple-50 text-purple-600 py-1.5 rounded-lg hover:bg-purple-100">Portal</button>
-                  <button onClick={() => handleEdit(t)} className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100">Edit</button>
-                  <button onClick={() => handleDelete(t.id, t.full_name)} className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100">Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ) : (
+                filteredTenants.map(t => (
+                  <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{t.full_name}</h3>
+                        <p className="text-xs text-gray-400 mt-1">{t.phone}</p>
+                        <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
+                        {t.notes && (
+                          <p className="text-xs text-gray-500 mt-1 italic">📝 {t.notes}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400">Next due</p>
+                        <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'}`}>
+                          {t.next_due_date}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                      <button onClick={() => sendReminder(t.id, t.full_name)} className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100">Remind</button>
+                      <button onClick={() => sendPortalLink(t.id, t.full_name)} className="flex-1 text-xs bg-purple-50 text-purple-600 py-1.5 rounded-lg hover:bg-purple-100">Portal</button>
+                      <button onClick={() => handleEdit(t)} className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100">Edit</button>
+                      <button onClick={() => handleDelete(t.id, t.full_name)} className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100">Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
         )}
       </div>
 

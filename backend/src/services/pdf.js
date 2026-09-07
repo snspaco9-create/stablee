@@ -56,7 +56,7 @@ function generateReceipt(payment, tenant, unit, property, landlord) {
     doc.fontSize(12).font('Helvetica').fillColor('#666666')
       .text('Amount Paid', 70, 435)
     doc.fontSize(22).font('Helvetica-Bold').fillColor('#1a56db')
-      .text(`NGN ${Number(payment.amount).toLocaleString()}`, 70, 453)
+      .text(`₦${Number(payment.amount).toLocaleString()}`, 70, 453)
 
     // Footer
     doc.moveTo(50, 510).lineTo(550, 510).stroke('#eeeeee')

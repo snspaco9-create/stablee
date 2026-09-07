@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import { DashboardSkeleton } from '../components/Skeleton'
+import OnboardingBanner from '../components/OnboardingBanner'
 import api from '../api'
 
 export default function Dashboard() {
@@ -31,7 +32,7 @@ export default function Dashboard() {
       const plan = params.get('plan')
       const updated = { ...landlord, plan }
       localStorage.setItem('landlord', JSON.stringify(updated))
-      window.history.replaceState({}, '', '/')
+      window.history.replaceState({}, '', '/home')
     }
   }, [])
 
@@ -121,6 +122,8 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          <OnboardingBanner stats={stats} />
 
           {summary?.overdue_tenants?.length > 0 && (
             <div className="px-4 mb-4">

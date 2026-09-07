@@ -9,10 +9,15 @@ export default function Payments() {
   const [payments, setPayments] = useState([])
   const [tenants, setTenants] = useState([])
   const [showForm, setShowForm] = useState(false)
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState({ tenant_id: '', unit_id: '', amount: '', method: 'cash', payment_date: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
+
+  const filteredPayments = payments.filter(p =>
+    p.tenants?.full_name?.toLowerCase().includes(search.toLowerCase())
+  )
 
   useEffect(() => {
     fetchPayments()
@@ -170,37 +175,54 @@ export default function Payments() {
             <p className="text-gray-400 text-xs mt-1">Tap + to record a payment</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {payments.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{p.tenants?.full_name}</h3>
-                    <p className="text-xs text-gray-400 mt-1">{p.tenants?.units?.properties?.name} · {p.tenants?.units?.unit_number}</p>
-                    <p className="text-xs text-gray-400">{p.method} · {p.payment_date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-green-600">{fmt(p.amount)}</p>
-                    <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-lg">{p.status}</span>
-                  </div>
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search by tenant name..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-3">
+              {filteredPayments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-sm">No payments found for "{search}"</p>
                 </div>
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                  <button
-                    onClick={() => downloadReceipt(p.id)}
-                    className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
-                  >
-                    Receipt
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ) : (
+                filteredPayments.map(p => (
+                  <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{p.tenants?.full_name}</h3>
+                        <p className="text-xs text-gray-400 mt-1">{p.tenants?.units?.properties?.name} · {p.tenants?.units?.unit_number}</p>
+                        <p className="text-xs text-gray-400">{p.method} · {p.payment_date}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-green-600">{fmt(p.amount)}</p>
+                        <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-lg">{p.status}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
+                      <button
+                        onClick={() => downloadReceipt(p.id)}
+                        className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100"
+                      >
+                        Receipt
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
         )}
       </div>
 

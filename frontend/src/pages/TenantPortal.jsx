@@ -68,6 +68,12 @@ export default function TenantPortal() {
               <span className="text-xs text-gray-400">Lease end</span>
               <span className="text-xs text-gray-700">{data.tenant.lease_end || 'Not set'}</span>
             </div>
+            {data.tenant.notes && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-400">Notes</span>
+                <p className="text-xs text-gray-700 mt-1 italic">{data.tenant.notes}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -105,6 +111,21 @@ export default function TenantPortal() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Need help?</h3>
+          <p className="text-xs text-gray-500 mb-3">Contact your landlord for any questions about your tenancy.</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-400">📧</span>
+              <span className="text-gray-700">{data.tenant.landlord_email || 'Email not provided'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-400">📱</span>
+              <span className="text-gray-700">{data.tenant.landlord_phone || 'Phone not provided'}</span>
+            </div>
+          </div>
         </div>
 
         <p className="text-center text-xs text-gray-300 pb-4">Powered by Stablee</p>

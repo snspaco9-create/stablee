@@ -18,7 +18,7 @@ export default function Register() {
     try {
       const res = await api.post('/auth/register', form)
       login(res.data.token, res.data.landlord, res.data.refresh_token)
-      navigate('/')
+      navigate('/home')
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed')
     } finally {
