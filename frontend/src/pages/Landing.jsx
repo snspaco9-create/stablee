@@ -3,6 +3,94 @@ import { useNavigate } from 'react-router-dom'
 export default function Landing() {
   const navigate = useNavigate()
 
+  const features = [
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      title: 'Property & tenant management',
+      desc: 'Track all your properties, units and tenants in one clean dashboard. See who has paid and who hasn\'t at a glance.'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      ),
+      title: 'Automatic SMS reminders',
+      desc: 'Set reminders 30, 14, 7, 3 and 1 day before rent is due. Tenants get reminded automatically — you do nothing.'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      title: 'Instant PDF receipts',
+      desc: 'Generate professional PDF receipts for every payment in seconds. No more handwritten receipts.'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      ),
+      title: 'Tenant portal',
+      desc: 'Give tenants a link to view their full payment history and download receipts anytime. No login required.'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      title: 'Real-time dashboard',
+      desc: 'See expected rent, collected amount and outstanding balance for any month at a glance.'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      title: 'Built for Nigeria',
+      desc: 'Supports monthly, quarterly and yearly payment cycles. Naira only. No foreign currency confusion.'
+    }
+  ]
+
+  const problems = [
+    {
+      icon: (
+        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      ),
+      title: 'Paper notebooks',
+      desc: 'Payment records get lost, damaged or forgotten entirely'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+      title: 'WhatsApp chasing',
+      desc: 'Sending "Please have you paid?" to tenants every month'
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18M10 6v12M6 6v12" />
+        </svg>
+      ),
+      title: 'Excel spreadsheets',
+      desc: 'Manual updates, no reminders, no receipts, one missed entry causes chaos'
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
@@ -21,8 +109,11 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <div className="inline-block bg-blue-50 text-blue-600 text-xs font-semibold px-3 py-1 rounded-full mb-6 uppercase tracking-wide">
-          Built for Nigerian landlords 🇳🇬
+        <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 text-xs font-semibold px-3 py-1 rounded-full mb-6 uppercase tracking-wide">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Built for Nigerian landlords
         </div>
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
           Manage your properties.<br />
@@ -54,13 +145,11 @@ export default function Landing() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Sound familiar?</h2>
           <p className="text-gray-500 mb-10">This is how most Nigerian landlords manage rent today</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { emoji: '📓', title: 'Paper notebooks', desc: 'Payment records get lost, damaged or forgotten entirely' },
-              { emoji: '📱', title: 'WhatsApp chasing', desc: 'Sending "Please have you paid?" to tenants every month' },
-              { emoji: '📊', title: 'Excel spreadsheets', desc: 'Manual updates, no reminders, no receipts, one missed entry causes chaos' }
-            ].map(item => (
+            {problems.map(item => (
               <div key={item.title} className="bg-white rounded-2xl p-6 border border-gray-100">
-                <div className="text-3xl mb-3">{item.emoji}</div>
+                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mb-3 mx-auto">
+                  {item.icon}
+                </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-500">{item.desc}</p>
               </div>
@@ -77,16 +166,11 @@ export default function Landing() {
             <p className="text-gray-500">Built specifically for how Nigerian landlords work</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { emoji: '🏠', title: 'Property & tenant management', desc: 'Track all your properties, units and tenants in one clean dashboard. See who has paid and who hasn\'t at a glance.' },
-              { emoji: '📱', title: 'Automatic SMS reminders', desc: 'Set reminders 30, 14, 7, 3 and 1 day before rent is due. Tenants get reminded automatically — you do nothing.' },
-              { emoji: '🧾', title: 'Instant PDF receipts', desc: 'Generate professional PDF receipts for every payment in seconds. No more handwritten receipts.' },
-              { emoji: '🔗', title: 'Tenant portal', desc: 'Give tenants a link to view their full payment history and download receipts anytime. No login required.' },
-              { emoji: '📊', title: 'Real-time dashboard', desc: 'See expected rent, collected amount and outstanding balance for any month at a glance.' },
-              { emoji: '🇳🇬', title: 'Built for Nigeria', desc: 'Supports monthly, quarterly and yearly payment cycles. Naira only. No foreign currency confusion.' }
-            ].map(f => (
+            {features.map(f => (
               <div key={f.title} className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-blue-200 transition-colors">
-                <div className="text-2xl mb-3">{f.emoji}</div>
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
+                  {f.icon}
+                </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
               </div>
@@ -144,7 +228,10 @@ export default function Landing() {
                 <ul className="space-y-2 mb-6">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="text-green-500 text-xs">✓</span>{f}
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {f}
                     </li>
                   ))}
                 </ul>
@@ -194,7 +281,12 @@ export default function Landing() {
             <a href="mailto:hello@stablee.app" className="hover:text-gray-600">Contact</a>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">© 2026 Stablee. All rights reserved. Built in Nigeria 🇳🇬</p>
+        <p className="text-center text-xs text-gray-400 mt-6">
+          © 2026 Stablee. All rights reserved. Built in Nigeria
+          <svg className="inline-block w-4 h-4 mx-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </p>
       </footer>
     </div>
   )

@@ -144,7 +144,11 @@ export default function Properties() {
           <ListSkeleton count={3} />
         ) : properties.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">🏠</p>
+            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+            </div>
             <p className="text-gray-500 text-sm font-medium">No properties yet</p>
             <p className="text-gray-400 text-xs mt-1">Tap + to get started</p>
           </div>

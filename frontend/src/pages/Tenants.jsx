@@ -292,7 +292,11 @@ export default function Tenants() {
           <ListSkeleton count={4} />
         ) : tenants.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">👥</p>
+            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
             <p className="text-gray-500 text-sm font-medium">No tenants yet</p>
             <p className="text-gray-400 text-xs mt-1">Tap + to get started</p>
           </div>

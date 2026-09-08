@@ -1,4 +1,5 @@
 const axios = require('axios')
+const crypto = require('crypto')
 const { supabaseAdmin } = require('../supabase')
 require('dotenv').config()
 
@@ -82,7 +83,7 @@ exports.verifyPayment = async (req, res) => {
         })
         .eq('id', landlord_id)
 
-      return res.redirect(`https://stablee.vercel.app/?payment=success&plan=${plan}`)
+      return res.redirect(`https://stablee.vercel.app/home?payment=success&plan=${plan}`)
     }
 
     res.redirect('https://stablee.vercel.app/pricing?error=payment_failed')
@@ -90,4 +91,36 @@ exports.verifyPayment = async (req, res) => {
     console.error('Verify error:', err.response?.data || err.message)
     res.redirect('https://stablee.vercel.app/pricing?error=verify_failed')
   }
+}
+
+exports.paystackWebhook = async (req, res) => {
+  const hash = crypto
+    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+    .update(JSON.stringify(req.body))
+    .digest('hex')
+
+  if (hash !== req.headers['x-paystack-signature']) {
+    return res.status(401).json({ error: 'Invalid signature' })
+  }
+
+  const { event, data } = req.body
+
+  if (event === 'charge.success') {
+    const { metadata, status } = data
+    if (status === 'success' && metadata?.landlord_id && metadata?.plan) {
+      const subscriptionEnd = new Date()
+      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
+
+      await supabaseAdmin
+        .from('landlords')
+        .update({
+          plan: metadata.plan,
+          subscription_start: new Date().toISOString(),
+          subscription_end: subscriptionEnd.toISOString()
+        })
+        .eq('id', metadata.landlord_id)
+    }
+  }
+
+  res.json({ received: true })
 }

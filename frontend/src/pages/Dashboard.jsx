@@ -164,7 +164,11 @@ export default function Dashboard() {
           {summary?.overdue_tenants?.length === 0 && summary?.upcoming_due?.length === 0 && (
             <div className="px-4 mb-4">
               <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center shadow-sm">
-                <div className="text-4xl mb-3">✅</div>
+                <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
                 <p className="text-gray-600 text-sm font-medium">All payments up to date</p>
                 <p className="text-gray-400 text-xs mt-1">No overdue or upcoming payments</p>
               </div>
