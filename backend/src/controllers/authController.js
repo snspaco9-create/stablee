@@ -1,10 +1,30 @@
+```js
 const { supabase, supabaseAdmin } = require('../supabase')
+
+const BLOCKED_DOMAINS = [
+  'mailinator.com', 'tempmail.com', 'guerrillamail.com',
+  'throwaway.email', 'yopmail.com', 'sharklasers.com',
+  'guerrillamailblock.com', 'grr.la', 'guerrillamail.info',
+  'spam4.me', 'trashmail.com', 'tempinbox.com', 'fakeinbox.com',
+  '10minutemail.com', 'dispostable.com', 'mailnull.com'
+]
+
+function isBlockedEmail(email) {
+  const domain = email.split('@')[1]?.toLowerCase()
+  return BLOCKED_DOMAINS.includes(domain)
+}
 
 exports.register = async (req, res) => {
   const { full_name, email, phone, password } = req.body
 
   if (!full_name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password are required' })
+  }
+
+  if (isBlockedEmail(email)) {
+    return res.status(400).json({
+      error: 'Please use a real email address. Temporary emails are not allowed.'
+    })
   }
 
   const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -108,3 +128,4 @@ exports.resetPassword = async (req, res) => {
   if (error) return res.status(400).json({ error: error.message })
   res.json({ message: 'Password updated successfully' })
 }
+```
