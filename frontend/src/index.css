@@ -43,7 +43,9 @@
   border-color: #374151 !important;
 }
 
-.dark input, .dark select, .dark textarea {
+.dark input,
+.dark select,
+.dark textarea {
   background-color: #374151 !important;
   border-color: #4b5563 !important;
   color: #f9fafb !important;
