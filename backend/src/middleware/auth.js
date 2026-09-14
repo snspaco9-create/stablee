@@ -1,27 +1,25 @@
-const { supabaseAdmin } = require('../supabase')
+const express = require('express')
 
-module.exports = async (req, res, next) => {
-  const authHeader = req.headers['authorization']
-  const token = authHeader && authHeader.split(' ')[1]
+const router = express.Router()
 
-  if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' })
+const {
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  deleteAccount
+} = require('../controllers/authController')
 
-  try {
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+const auth = require('../middleware/auth')
 
-    if (error || !user) return res.status(401).json({ error: 'Invalid or expired token.' })
+router.post('/register', register)
 
-    const { data: landlord } = await supabaseAdmin
-      .from('landlords')
-      .select('*')
-      .eq('auth_id', user.id)
-      .single()
+router.post('/login', login)
 
-    if (!landlord) return res.status(404).json({ error: 'Landlord not found' })
+router.post('/forgot-password', forgotPassword)
 
-    req.landlord = landlord
-    next()
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid or expired token.' })
-  }
-}
+router.post('/reset-password', resetPassword)
+
+router.delete('/delete-account', auth, deleteAccount)
+
+module.exports = router

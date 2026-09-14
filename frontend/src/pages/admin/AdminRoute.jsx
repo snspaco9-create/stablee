@@ -1,30 +1,42 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 
 export default function AdminRoute({ children }) {
-  // Get landlord from localStorage
+  const location = useLocation()
+
+  const token = localStorage.getItem('token')
   const landlordStr = localStorage.getItem('landlord')
-  
-  if (!landlordStr) {
-    return <Navigate to="/admin/login" replace />
+
+  if (!token || !landlordStr) {
+    return (
+      <Navigate
+        to="/admin/login"
+        replace
+        state={{ from: location }}
+      />
+    )
   }
-  
+
   try {
     const landlord = JSON.parse(landlordStr)
-    
-    // Check if user is admin
-    if (!landlord.is_admin) {
-      return <Navigate to="/admin/login" replace />
+
+    if (!landlord || landlord.is_admin !== true) {
+      return (
+        <Navigate
+          to="/admin/login"
+          replace
+        />
+      )
     }
-    
-    // Check if token exists
-    const token = localStorage.getItem('token')
-    if (!token) {
-      return <Navigate to="/admin/login" replace />
-    }
-    
+
     return children
   } catch (error) {
-    // If there's an error parsing, redirect to login
-    return <Navigate to="/admin/login" replace />
+    localStorage.removeItem('landlord')
+
+    return (
+      <Navigate
+        to="/admin/login"
+        replace
+      />
+    )
   }
 }
