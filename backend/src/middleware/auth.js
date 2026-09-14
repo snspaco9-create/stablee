@@ -1,25 +1,51 @@
-const express = require('express')
+const { supabaseAdmin } = require('../supabase')
 
-const router = express.Router()
+const auth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.split(' ')[1]
 
-const {
-  register,
-  login,
-  forgotPassword,
-  resetPassword,
-  deleteAccount
-} = require('../controllers/authController')
+    if (!token) {
+      return res.status(401).json({
+        error: 'No token provided'
+      })
+    }
 
-const auth = require('../middleware/auth')
+    const {
+      data: { user },
+      error: userError
+    } = await supabaseAdmin.auth.getUser(token)
 
-router.post('/register', register)
+    if (userError || !user) {
+      return res.status(401).json({
+        error: 'Invalid or expired token'
+      })
+    }
 
-router.post('/login', login)
+    const { data: landlord, error: landlordError } =
+      await supabaseAdmin
+        .from('landlords')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single()
 
-router.post('/forgot-password', forgotPassword)
+    if (landlordError || !landlord) {
+      return res.status(404).json({
+        error: 'Landlord profile not found'
+      })
+    }
 
-router.post('/reset-password', resetPassword)
+    req.landlord = landlord
+    req.user = user
 
-router.delete('/delete-account', auth, deleteAccount)
+    next()
+  } catch (error) {
+    console.error('Auth middleware error:', error)
 
-module.exports = router
+    return res.status(500).json({
+      error: 'Authentication failed'
+    })
+  }
+}
+
+module.exports = auth
