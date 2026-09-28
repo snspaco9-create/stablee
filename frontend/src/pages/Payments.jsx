@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ListSkeleton } from '../components/Skeleton'
 import BottomNav from '../components/BottomNav'
+import ConfirmModal from '../components/ConfirmModal'
 import api from '../api'
 
 export default function Payments() {
@@ -13,6 +14,7 @@ export default function Payments() {
   const [form, setForm] = useState({ tenant_id: '', unit_id: '', amount: '', method: 'cash', payment_date: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirm, setConfirm] = useState({ open: false, id: null, name: '' })
   const navigate = useNavigate()
 
   const filteredPayments = payments.filter(p =>
@@ -61,7 +63,13 @@ export default function Payments() {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDeleteRequest = (id, name) => {
+    setConfirm({ open: true, id, name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { id } = confirm
+    setConfirm({ open: false, id: null, name: '' })
     const toastId = toast.loading('Deleting payment...')
     try {
       await api.delete(`/payments/${id}`)
@@ -236,7 +244,7 @@ export default function Payments() {
                         Receipt
                       </button>
                       <button
-                        onClick={() => handleDelete(p.id)}
+                        onClick={() => handleDeleteRequest(p.id, fmt(p.amount))}
                         className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100"
                       >
                         Delete
@@ -249,6 +257,14 @@ export default function Payments() {
           </>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirm.open}
+        title="Delete payment"
+        message={`Are you sure you want to delete this payment of ${confirm.name}? The tenant's next due date will be reversed by one billing cycle.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirm({ open: false, id: null, name: '' })}
+      />
 
       <BottomNav />
     </div>

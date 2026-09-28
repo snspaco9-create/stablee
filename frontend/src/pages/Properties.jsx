@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { ListSkeleton } from '../components/Skeleton'
 import api from '../api'
 import BottomNav from '../components/BottomNav'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Properties() {
   const [properties, setProperties] = useState([])
@@ -13,6 +14,7 @@ export default function Properties() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(null)
+  const [confirm, setConfirm] = useState({ open: false, id: null, name: '' })
   const navigate = useNavigate()
 
   useEffect(() => { fetchProperties() }, [])
@@ -30,7 +32,13 @@ export default function Properties() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id, name) => {
+  const handleDeleteRequest = (id, name) => {
+    setConfirm({ open: true, id, name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { id, name } = confirm
+    setConfirm({ open: false, id: null, name: '' })
     setDeleting(id)
     try {
       await api.delete(`/properties/${id}`)
@@ -181,7 +189,7 @@ export default function Properties() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(p.id, p.name)}
+                    onClick={() => handleDeleteRequest(p.id, p.name)}
                     disabled={deleting === p.id}
                     className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100 disabled:opacity-50"
                   >
@@ -193,6 +201,14 @@ export default function Properties() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirm.open}
+        title="Delete property"
+        message={`Are you sure you want to delete ${confirm.name}? All units and tenants will be removed permanently.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirm({ open: false, id: null, name: '' })}
+      />
 
       <BottomNav />
     </div>

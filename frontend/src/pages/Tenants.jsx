@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ListSkeleton } from '../components/Skeleton'
 import BottomNav from '../components/BottomNav'
+import ConfirmModal from '../components/ConfirmModal'
 import api from '../api'
 
 export default function Tenants() {
@@ -13,17 +14,14 @@ export default function Tenants() {
   const [editTenant, setEditTenant] = useState(null)
   const [selectedProperty, setSelectedProperty] = useState('')
   const [search, setSearch] = useState('')
-  const [form, setForm] = useState({
-    unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: ''
-  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirm, setConfirm] = useState({ open: false, id: null, name: '' })
+  const [form, setForm] = useState({
+    unit_id: '', full_name: '', phone: '', email: '',
+    lease_start: '', lease_end: '', notes: ''
+  })
   const navigate = useNavigate()
-
-  const filteredTenants = tenants.filter(t =>
-    t.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    t.phone?.includes(search)
-  )
 
   useEffect(() => {
     fetchTenants()
@@ -36,6 +34,11 @@ export default function Tenants() {
       .then(res => setTenants(res.data))
       .finally(() => setLoading(false))
   }
+
+  const filteredTenants = tenants.filter(t =>
+    t.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    t.phone?.includes(search)
+  )
 
   const handlePropertyChange = async (property_id) => {
     setSelectedProperty(property_id)
@@ -62,10 +65,16 @@ export default function Tenants() {
     setShowForm(true)
   }
 
-  const handleDelete = async (tenant_id, name) => {
-    const toastId = toast.loading(`Deleting ${name}...`)
+  const handleDeleteRequest = (id, name) => {
+    setConfirm({ open: true, id, name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { id, name } = confirm
+    setConfirm({ open: false, id: null, name: '' })
+    const toastId = toast.loading(`Removing ${name}...`)
     try {
-      await api.delete(`/tenants/${tenant_id}`)
+      await api.delete(`/tenants/${id}`)
       toast.success(`${name} removed`, { id: toastId })
       fetchTenants()
     } catch (err) {
@@ -78,36 +87,26 @@ export default function Tenants() {
     try {
       const res = await api.post('/reminders/send', { tenant_id })
       if (res.data.pending) {
-        toast('Reminder logged. SMS pending sender ID approval.', { id: toastId, icon: '⏳' })
+        toast('Reminder logged. SMS pending sender approval.', { id: toastId, duration: 4000 })
       } else {
         toast.success(`Reminder sent to ${name}`, { id: toastId })
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to send reminder', { id: toastId })
-    }
-  }
-
-  const sendBulkReminders = async () => {
-    const toastId = toast.loading('Sending reminders to all overdue tenants...')
-    try {
-      const res = await api.post('/reminders/send-bulk', { days_ahead: 0 })
-      toast.success(`Sent ${res.data.sent} reminders`, { id: toastId })
-    } catch (err) {
-      toast.error('Failed to send bulk reminders', { id: toastId })
+      toast.error('Failed to send reminder', { id: toastId })
     }
   }
 
   const sendPortalLink = async (tenant_id, name) => {
-    const toastId = toast.loading(`Sending portal link to ${name}...`)
+    const toastId = toast.loading(`Generating portal link for ${name}...`)
     try {
       const res = await api.post(`/tenant-portal/generate/${tenant_id}`)
       if (res.data.sms_sent) {
         toast.success(`Portal link sent to ${name}`, { id: toastId })
       } else {
-        toast(`Portal link generated. Copy: ${res.data.portal_url}`, { id: toastId, icon: '🔗', duration: 8000 })
+        toast(`Portal link ready. Copy: ${res.data.portal_url}`, { id: toastId, duration: 8000 })
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to generate portal link', { id: toastId })
+      toast.error('Failed to generate portal link', { id: toastId })
     }
   }
 
@@ -145,35 +144,41 @@ export default function Tenants() {
     }
   }
 
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex justify-between items-center sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      <ConfirmModal
+        isOpen={confirm.open}
+        title="Remove tenant"
+        message={`Are you sure you want to remove ${confirm.name}? This will also set their unit to vacant.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirm({ open: false, id: null, name: '' })}
+      />
+
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-4 flex justify-between items-center sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <span className="text-white text-sm font-bold">S</span>
           </div>
-          <span className="text-base font-bold text-gray-900">Tenants</span>
+          <span className="text-base font-bold text-gray-900 dark:text-white">Tenants</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={sendBulkReminders}
-            className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700"
-          >
-            Bulk remind
-          </button>
-          <button
-            onClick={() => { setEditTenant(null); setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: '' }); setShowForm(!showForm) }}
-            className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg hover:bg-blue-700"
-          >
-            +
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            setEditTenant(null)
+            setForm({ unit_id: '', full_name: '', phone: '', email: '', lease_start: '', lease_end: '', notes: '' })
+            setShowForm(!showForm)
+          }}
+          className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg hover:bg-blue-700"
+        >
+          +
+        </button>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
         {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 mb-6 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
               {editTenant ? 'Edit tenant' : 'New tenant'}
             </h3>
             <div className="space-y-3">
@@ -182,7 +187,7 @@ export default function Tenants() {
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Property</label>
                     <select
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={selectedProperty}
                       onChange={e => handlePropertyChange(e.target.value)}
                       required
@@ -196,7 +201,7 @@ export default function Tenants() {
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Unit</label>
                     <select
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={form.unit_id}
                       onChange={e => setForm({ ...form, unit_id: e.target.value })}
                       required
@@ -212,7 +217,7 @@ export default function Tenants() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Full name</label>
                 <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.full_name}
                   onChange={e => setForm({ ...form, full_name: e.target.value })}
                   required
@@ -222,7 +227,7 @@ export default function Tenants() {
                 <label className="block text-xs text-gray-500 mb-1">Phone</label>
                 <input
                   type="tel"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.phone}
                   onChange={e => setForm({ ...form, phone: e.target.value })}
                   required
@@ -232,7 +237,7 @@ export default function Tenants() {
                 <label className="block text-xs text-gray-500 mb-1">Email (optional)</label>
                 <input
                   type="email"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                 />
@@ -242,7 +247,7 @@ export default function Tenants() {
                   <label className="block text-xs text-gray-500 mb-1">Lease start</label>
                   <input
                     type="date"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={form.lease_start}
                     onChange={e => setForm({ ...form, lease_start: e.target.value })}
                     required
@@ -250,10 +255,10 @@ export default function Tenants() {
                 </div>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Lease end</label>
+                <label className="block text-xs text-gray-500 mb-1">Lease end (optional)</label>
                 <input
                   type="date"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.lease_end}
                   onChange={e => setForm({ ...form, lease_end: e.target.value })}
                 />
@@ -261,10 +266,10 @@ export default function Tenants() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
                 <textarea
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
-                  placeholder="e.g. Has a dog, pays on time, prefers WhatsApp"
-                  value={form.notes || ''}
+                  placeholder="e.g. Pays on time, has a car"
+                  value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })}
                 />
               </div>
@@ -279,7 +284,7 @@ export default function Tenants() {
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); setEditTenant(null) }}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -288,11 +293,23 @@ export default function Tenants() {
           </form>
         )}
 
+        {tenants.length > 0 && !showForm && (
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
         {loading ? (
           <ListSkeleton count={4} />
-        ) : tenants.length === 0 ? (
+        ) : filteredTenants.length === 0 && !search ? (
           <div className="text-center py-16">
-            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -300,52 +317,59 @@ export default function Tenants() {
             <p className="text-gray-500 text-sm font-medium">No tenants yet</p>
             <p className="text-gray-400 text-xs mt-1">Tap + to get started</p>
           </div>
+        ) : filteredTenants.length === 0 && search ? (
+          <div className="text-center py-10">
+            <p className="text-gray-500 text-sm">No tenants match your search</p>
+          </div>
         ) : (
-          <>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search by name or phone..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="space-y-4">
-              {filteredTenants.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">No tenants found matching "{search}"</p>
-                </div>
-              ) : (
-                filteredTenants.map(t => (
-                  <div key={t.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{t.full_name}</h3>
-                        <p className="text-xs text-gray-400 mt-1">{t.phone}</p>
-                        <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
-                        {t.notes && (
-                          <p className="text-xs text-gray-500 mt-1 italic">📝 {t.notes}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400">Next due</p>
-                        <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900'}`}>
-                          {t.next_due_date}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
-                      <button onClick={() => sendReminder(t.id, t.full_name)} className="flex-1 text-xs bg-green-50 text-green-600 py-1.5 rounded-lg hover:bg-green-100">Remind</button>
-                      <button onClick={() => sendPortalLink(t.id, t.full_name)} className="flex-1 text-xs bg-purple-50 text-purple-600 py-1.5 rounded-lg hover:bg-purple-100">Portal</button>
-                      <button onClick={() => handleEdit(t)} className="flex-1 text-xs bg-blue-50 text-blue-600 py-1.5 rounded-lg hover:bg-blue-100">Edit</button>
-                      <button onClick={() => handleDelete(t.id, t.full_name)} className="flex-1 text-xs bg-red-50 text-red-500 py-1.5 rounded-lg hover:bg-red-100">Delete</button>
-                    </div>
+          <div className="space-y-4">
+            {filteredTenants.map(t => (
+              <div key={t.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{t.full_name}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">{t.phone}</p>
+                    <p className="text-xs text-gray-400">{t.units?.properties?.name} · {t.units?.unit_number}</p>
+                    {t.notes && (
+                      <p className="text-xs text-blue-500 dark:text-blue-400 mt-1 italic">{t.notes}</p>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">Next due</p>
+                    <p className={`text-sm font-semibold mt-0.5 ${new Date(t.next_due_date) < new Date() ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                      {fmtDate(t.next_due_date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-50 dark:border-gray-700">
+                  <button
+                    onClick={() => sendReminder(t.id, t.full_name)}
+                    className="text-xs bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-1.5 rounded-lg hover:bg-green-100"
+                  >
+                    Remind
+                  </button>
+                  <button
+                    onClick={() => sendPortalLink(t.id, t.full_name)}
+                    className="text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 py-1.5 rounded-lg hover:bg-purple-100"
+                  >
+                    Portal
+                  </button>
+                  <button
+                    onClick={() => handleEdit(t)}
+                    className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-1.5 rounded-lg hover:bg-blue-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRequest(t.id, t.full_name)}
+                    className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 py-1.5 rounded-lg hover:bg-red-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

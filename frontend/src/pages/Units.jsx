@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import PageHeader from '../components/PageHeader'
 import BottomNav from '../components/BottomNav'
 import SkeletonCard from '../components/SkeletonCard'
+import ConfirmModal from '../components/ConfirmModal'
 import api from '../api'
 
 export default function Units() {
@@ -15,6 +16,7 @@ export default function Units() {
   const [form, setForm] = useState({ unit_number: '', rent_amount: '', payment_cycle: 'monthly' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirm, setConfirm] = useState({ open: false, id: null, name: '' })
   const navigate = useNavigate()
 
   useEffect(() => { fetchUnits() }, [property_id])
@@ -31,7 +33,13 @@ export default function Units() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id, name) => {
+  const handleDeleteRequest = (id, name) => {
+    setConfirm({ open: true, id, name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { id, name } = confirm
+    setConfirm({ open: false, id: null, name: '' })
     const toastId = toast.loading(`Deleting ${name}...`)
     try {
       await api.delete(`/units/${id}`)
@@ -155,7 +163,7 @@ export default function Units() {
                   <button onClick={() => handleEdit(u)} className="flex-1 text-xs bg-blue-50 text-blue-600 py-2 rounded-xl hover:bg-blue-100 font-medium transition-colors">
                     Edit
                   </button>
-                  <button onClick={() => handleDelete(u.id, u.unit_number)} className="flex-1 text-xs bg-red-50 text-red-500 py-2 rounded-xl hover:bg-red-100 font-medium transition-colors">
+                  <button onClick={() => handleDeleteRequest(u.id, u.unit_number)} className="flex-1 text-xs bg-red-50 text-red-500 py-2 rounded-xl hover:bg-red-100 font-medium transition-colors">
                     Delete
                   </button>
                 </div>
@@ -164,6 +172,15 @@ export default function Units() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirm.open}
+        title="Delete unit"
+        message={`Are you sure you want to delete ${confirm.name}? Any tenant assigned to this unit will lose their record.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirm({ open: false, id: null, name: '' })}
+      />
+
       <BottomNav />
     </div>
   )
