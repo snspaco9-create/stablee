@@ -37,18 +37,24 @@ exports.getPayments = async (req, res) => {
 
 exports.createPayment = async (req, res) => {
   const { tenant_id, unit_id, amount, method, payment_date } = req.body
+  const landlord_id = req.landlord.id
 
   if (!tenant_id || !unit_id || !amount) {
     return res.status(400).json({ error: 'tenant_id, unit_id and amount are required' })
   }
 
+  // Ownership check baked into the tenant fetch: only returns the tenant
+  // if the unit's property belongs to the authenticated landlord.
   const { data: tenant, error: tenantError } = await supabase
     .from('tenants')
-    .select('*, units(payment_cycle)')
+    .select('*, units!inner(payment_cycle, properties!inner(landlord_id))')
     .eq('id', tenant_id)
+    .eq('units.properties.landlord_id', landlord_id)
     .single()
 
-  if (tenantError || !tenant) return res.status(404).json({ error: 'Tenant not found' })
+  if (tenantError || !tenant) {
+    return res.status(403).json({ error: 'Tenant not found or you do not own this tenant' })
+  }
 
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
@@ -152,13 +158,20 @@ exports.getDashboardSummary = async (req, res) => {
 }
 
 exports.deletePayment = async (req, res) => {
+  const landlord_id = req.landlord.id
+
+  // Ownership check baked into the payment fetch: joins payments -> tenants
+  // -> units -> properties and filters on the authenticated landlord.
   const { data: payment, error: fetchError } = await supabase
     .from('payments')
-    .select('*')
+    .select('*, tenants!inner(units!inner(properties!inner(landlord_id)))')
     .eq('id', req.params.id)
+    .eq('tenants.units.properties.landlord_id', landlord_id)
     .single()
 
-  if (fetchError || !payment) return res.status(404).json({ error: 'Payment not found' })
+  if (fetchError || !payment) {
+    return res.status(403).json({ error: 'Payment not found or access denied' })
+  }
 
   const { data: tenant } = await supabase
     .from('tenants')

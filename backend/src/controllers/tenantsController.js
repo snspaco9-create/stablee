@@ -3,53 +3,63 @@ const { supabaseAdmin: supabase } = require('../supabase')
 function calculateNextDueDate(leaseStart, paymentCycle) {
   const date = new Date(leaseStart)
   switch (paymentCycle) {
-    case 'monthly':
-      date.setMonth(date.getMonth() + 1)
-      break
-    case 'quarterly':
-      date.setMonth(date.getMonth() + 3)
-      break
-    case 'yearly':
-      date.setFullYear(date.getFullYear() + 1)
-      break
-    default:
-      date.setMonth(date.getMonth() + 1)
+    case 'monthly': date.setMonth(date.getMonth() + 1); break
+    case 'quarterly': date.setMonth(date.getMonth() + 3); break
+    case 'yearly': date.setFullYear(date.getFullYear() + 1); break
+    default: date.setMonth(date.getMonth() + 1)
   }
   return date.toISOString().split('T')[0]
 }
 
+async function verifyTenantOwnership(tenant_id, landlord_id) {
+  const { data } = await supabase
+    .from('tenants')
+    .select('id, units!inner(properties!inner(landlord_id))')
+    .eq('id', tenant_id)
+    .eq('units.properties.landlord_id', landlord_id)
+    .single()
+  return !!data
+}
+
+async function verifyUnitOwnership(unit_id, landlord_id) {
+  const { data } = await supabase
+    .from('units')
+    .select('id, properties!inner(landlord_id)')
+    .eq('id', unit_id)
+    .eq('properties.landlord_id', landlord_id)
+    .single()
+  return !!data
+}
+
 exports.getTenants = async (req, res) => {
   const landlord_id = req.landlord.id
-
   const { data, error } = await supabase
     .from('tenants')
     .select('*, units!inner(unit_number, rent_amount, payment_cycle, properties!inner(name, landlord_id))')
     .eq('units.properties.landlord_id', landlord_id)
     .order('full_name', { ascending: true })
-
   if (error) return res.status(500).json({ error: error.message })
   res.json(data)
 }
 
 exports.createTenant = async (req, res) => {
-  const { unit_id, full_name, phone, email, lease_start, lease_end } = req.body
+  const { unit_id, full_name, phone, email, lease_start, lease_end, notes } = req.body
   const landlord = req.landlord
 
   if (!unit_id || !full_name || !phone || !lease_start) {
     return res.status(400).json({ error: 'unit_id, full_name, phone and lease_start are required' })
   }
 
+  const ownsUnit = await verifyUnitOwnership(unit_id, landlord.id)
+  if (!ownsUnit) return res.status(403).json({ error: 'You do not own this unit' })
+
   if (landlord.plan === 'free') {
     const { data: existing } = await supabase
       .from('tenants')
       .select('id, units!inner(properties!inner(landlord_id))')
       .eq('units.properties.landlord_id', landlord.id)
-
     if (existing && existing.length >= 10) {
-      return res.status(403).json({
-        error: 'Free plan allows only 10 tenants. Upgrade to add more.',
-        upgrade: true
-      })
+      return res.status(403).json({ error: 'Free plan allows only 10 tenants. Upgrade to add more.', upgrade: true })
     }
   }
 
@@ -65,32 +75,27 @@ exports.createTenant = async (req, res) => {
 
   const { data, error } = await supabase
     .from('tenants')
-    .insert([{ unit_id, full_name, phone, email, lease_start, lease_end, next_due_date }])
+    .insert([{ unit_id, full_name, phone, email, lease_start, lease_end, next_due_date, notes }])
     .select('*')
 
-  if (error) {
-    console.error('Insert error:', error)
-    return res.status(500).json({ error: error.message })
-  }
+  if (error) return res.status(500).json({ error: error.message })
+  if (!data || data.length === 0) return res.status(500).json({ error: 'Tenant was not created' })
 
-  if (!data || data.length === 0) {
-    return res.status(500).json({ error: 'Tenant was not created' })
-  }
-
-  await supabase
-    .from('units')
-    .update({ status: 'occupied' })
-    .eq('id', unit_id)
+  await supabase.from('units').update({ status: 'occupied' }).eq('id', unit_id)
 
   res.status(201).json(data[0])
 }
 
 exports.updateTenant = async (req, res) => {
-  const { full_name, phone, email, lease_end, next_due_date } = req.body
+  const { full_name, phone, email, lease_end, next_due_date, notes } = req.body
+  const landlord_id = req.landlord.id
+
+  const owns = await verifyTenantOwnership(req.params.id, landlord_id)
+  if (!owns) return res.status(403).json({ error: 'You do not own this tenant' })
 
   const { data, error } = await supabase
     .from('tenants')
-    .update({ full_name, phone, email, lease_end, next_due_date })
+    .update({ full_name, phone, email, lease_end, next_due_date, notes })
     .eq('id', req.params.id)
     .select('*')
 
@@ -100,6 +105,11 @@ exports.updateTenant = async (req, res) => {
 }
 
 exports.deleteTenant = async (req, res) => {
+  const landlord_id = req.landlord.id
+
+  const owns = await verifyTenantOwnership(req.params.id, landlord_id)
+  if (!owns) return res.status(403).json({ error: 'You do not own this tenant' })
+
   const { data: tenant } = await supabase
     .from('tenants')
     .select('unit_id')
@@ -114,10 +124,7 @@ exports.deleteTenant = async (req, res) => {
   if (error) return res.status(500).json({ error: error.message })
 
   if (tenant?.unit_id) {
-    await supabase
-      .from('units')
-      .update({ status: 'vacant' })
-      .eq('id', tenant.unit_id)
+    await supabase.from('units').update({ status: 'vacant' }).eq('id', tenant.unit_id)
   }
 
   res.json({ message: 'Tenant deleted and unit set to vacant' })

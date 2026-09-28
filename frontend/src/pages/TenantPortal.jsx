@@ -17,8 +17,31 @@ export default function TenantPortal() {
 
   const fmt = (n) => `₦${Number(n).toLocaleString()}`
 
-  const downloadReceipt = (paymentId) => {
-    window.open(`${import.meta.env.VITE_API_URL}/receipts/${paymentId}?token=${token}&portal=true`, '_blank')
+  const downloadReceipt = async (paymentId) => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/receipts/${paymentId}`,
+        {
+          params: { portal_token: token },
+          responseType: 'blob'
+        }
+      )
+
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `receipt-${String(paymentId).slice(0, 8)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Receipt download error:', err)
+      alert('Failed to download receipt. The link may have expired.')
+    }
   }
 
   if (loading) return (

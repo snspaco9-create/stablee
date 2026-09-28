@@ -72,9 +72,29 @@ export default function Payments() {
     }
   }
 
-  const downloadReceipt = (paymentId) => {
-    const token = localStorage.getItem('token')
-    window.open(`${import.meta.env.VITE_API_URL}/receipts/${paymentId}?token=${token}`, '_blank')
+  const downloadReceipt = async (paymentId) => {
+    const toastId = toast.loading('Preparing receipt...')
+    try {
+      const res = await api.get(`/receipts/${paymentId}`, {
+        responseType: 'blob'
+      })
+
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `receipt-${String(paymentId).slice(0, 8)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(url)
+      toast.success('Receipt downloaded', { id: toastId })
+    } catch (err) {
+      console.error('Receipt download error:', err)
+      toast.error('Failed to download receipt', { id: toastId })
+    }
   }
 
   const fmt = (n) => `₦${Number(n).toLocaleString()}`
